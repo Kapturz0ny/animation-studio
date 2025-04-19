@@ -25,8 +25,6 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Program do animacji")
         self.setGeometry(700, 300, 500, 500)
-        label5 = QLabel("#5", self)
-        label5.setStyleSheet("background-color: purple;")
 
         # two main sections
         self.objects_gl_editor_widget = QWidget()
@@ -123,12 +121,37 @@ class MainWindow(QWidget):
         self.param_frame_number = QLabel("Frame not chosen", self)
         self.parameters_frame_area.addWidget(self.param_frame_number)
         self.helper_parameters_frame.setLayout(self.parameters_frame_area)
-
         # add to editor layout
         self.editor_layout.addWidget(self.helper_buttons, stretch=1)
         self.editor_layout.addWidget(self.helper_parameters_object, stretch=12)
         self.editor_layout.addWidget(self.helper_parameters_frame, stretch=12)
-        self.animation_layout.addWidget(label5)
+        
+        #prepare animation section
+        self.helper_animation_header = QWidget()
+        self.helper_animation_header.setStyleSheet("border: 2px solid black;")
+        self.helper_animation_frames = QWidget()
+        self.helper_animation_frames.setStyleSheet("border: 2px solid black;")
+        self.animation_header = QHBoxLayout()
+        self.animation_frames = QHBoxLayout()
+        #header
+        self.animation_label = QLabel("Animation")
+        self.add_frame = QPushButton("+")
+        self.delete_frame = QPushButton("X")
+        self.frame_number = QLabel("Frame #")
+        self.download = QPushButton("Download film")
+        self.animation_header.addWidget(self.animation_label)
+        self.animation_header.addWidget(self.add_frame)
+        self.animation_header.addWidget(self.delete_frame)
+        self.animation_header.addWidget(self.frame_number)
+        self.animation_header.addWidget(self.download)
+        self.helper_animation_header.setLayout(self.animation_header)
+        #frames 
+        for i in range(40):
+            self.animation_frames.addWidget(QPushButton(""))
+        self.helper_animation_frames.setLayout(self.animation_frames)
+        #add to animation layout
+        self.animation_layout.addWidget(self.helper_animation_header)
+        self.animation_layout.addWidget(self.helper_animation_frames)
 
         #put layouts inside one another
         self.objects_gl_editor_layout.addLayout(self.objects_layout, stretch=2)
