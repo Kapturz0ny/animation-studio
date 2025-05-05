@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPu
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, QSize
 from OpenGL.GL import *
+from OpenGL.GLU import *
 import sys
 
 class MyGLWidget(QOpenGLWidget):
@@ -11,10 +12,74 @@ class MyGLWidget(QOpenGLWidget):
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+
+        # Definicja światła
+        light_pos = [5.0, 5.0, 10.0, 1.0]
+        glLightfv(GL_LIGHT0, GL_POSITION, light_pos)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
+
+        glEnable(GL_COLOR_MATERIAL)
+        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+
+    def resizeGL(self, w, h):
+        glViewport(0, 0, w, h)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        gluPerspective(45, w / h if h != 0 else 1, 1, 100)
+        glMatrixMode(GL_MODELVIEW)
 
     def paintGL(self):
         glClearColor(*self.color, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+        glLoadIdentity()
+        gluLookAt(5, 5, 10, 0, 0, 0, 0, 1, 0)
+
+        glColor3f(0.6, 0.2, 0.2)
+        self.draw_cube()
+    
+
+    def draw_cube(self):
+        glBegin(GL_QUADS)
+        # Front
+        glNormal3f(0, 0, 1)
+        glVertex3f(-1, -1,  1)
+        glVertex3f( 1, -1,  1)
+        glVertex3f( 1,  1,  1)
+        glVertex3f(-1,  1,  1)
+        # Back
+        glNormal3f(0, 0, -1)
+        glVertex3f(-1, -1, -1)
+        glVertex3f(-1,  1, -1)
+        glVertex3f( 1,  1, -1)
+        glVertex3f( 1, -1, -1)
+        # Left
+        glNormal3f(-1, 0, 0)
+        glVertex3f(-1, -1, -1)
+        glVertex3f(-1, -1,  1)
+        glVertex3f(-1,  1,  1)
+        glVertex3f(-1,  1, -1)
+        # Right
+        glNormal3f(1, 0, 0)
+        glVertex3f(1, -1, -1)
+        glVertex3f(1,  1, -1)
+        glVertex3f(1,  1,  1)
+        glVertex3f(1, -1,  1)
+        # Top
+        glNormal3f(0, 1, 0)
+        glVertex3f(-1, 1, -1)
+        glVertex3f(-1, 1,  1)
+        glVertex3f( 1, 1,  1)
+        glVertex3f( 1, 1, -1)
+        # Bottom
+        glNormal3f(0, -1, 0)
+        glVertex3f(-1, -1, -1)
+        glVertex3f( 1, -1, -1)
+        glVertex3f( 1, -1,  1)
+        glVertex3f(-1, -1,  1)
+        glEnd()
 
     def change_background_color(self, r, g, b):
         self.color = [r, g, b]
