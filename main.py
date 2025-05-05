@@ -1,89 +1,118 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea
+from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, QVector3D
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, QSize
 from OpenGL.GL import *
 from OpenGL.GLU import *
+from utils.cube import generate_cube
+import numpy as np
 import sys
+
+phong_vert = "shaders/phong.vert"
+phong_frag = "shaders/phong.frag"
+vert = "shaders/vertex_shader.glsl"
+frag = "shaders/fragment_shader.glsl"
 
 class MyGLWidget(QOpenGLWidget):
     def __init__(self):
         super(MyGLWidget, self).__init__()
         self.color = [0.1, 0.1, 0.1]
+        self.shader_program = None
+        self.vao = None
+        self.vbo = None
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
-        glEnable(GL_LIGHTING)
-        glEnable(GL_LIGHT0)
-
-        # Definicja światła
-        light_pos = [5.0, 5.0, 10.0, 1.0]
-        glLightfv(GL_LIGHT0, GL_POSITION, light_pos)
-        glLightfv(GL_LIGHT0, GL_DIFFUSE, [1.0, 1.0, 1.0, 1.0])
-
-        glEnable(GL_COLOR_MATERIAL)
-        glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
+        self.initShaders()
+        self.initCube()
 
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(45, w / h if h != 0 else 1, 1, 100)
-        glMatrixMode(GL_MODELVIEW)
 
     def paintGL(self):
-        glClearColor(*self.color, 1.0)
+        glClearColor(0.1, 0.1, 0.1, 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glLoadIdentity()
-        gluLookAt(5, 5, 10, 0, 0, 0, 0, 1, 0)
+        self.shader_program.bind()
 
-        glColor3f(0.6, 0.2, 0.2)
-        self.draw_cube()
-    
+        # Matryce
+        model = QMatrix4x4()
+        model.translate(0.0, 0.0, 0.0)
 
-    def draw_cube(self):
-        glBegin(GL_QUADS)
-        # Front
-        glNormal3f(0, 0, 1)
-        glVertex3f(-1, -1,  1)
-        glVertex3f( 1, -1,  1)
-        glVertex3f( 1,  1,  1)
-        glVertex3f(-1,  1,  1)
-        # Back
-        glNormal3f(0, 0, -1)
-        glVertex3f(-1, -1, -1)
-        glVertex3f(-1,  1, -1)
-        glVertex3f( 1,  1, -1)
-        glVertex3f( 1, -1, -1)
-        # Left
-        glNormal3f(-1, 0, 0)
-        glVertex3f(-1, -1, -1)
-        glVertex3f(-1, -1,  1)
-        glVertex3f(-1,  1,  1)
-        glVertex3f(-1,  1, -1)
-        # Right
-        glNormal3f(1, 0, 0)
-        glVertex3f(1, -1, -1)
-        glVertex3f(1,  1, -1)
-        glVertex3f(1,  1,  1)
-        glVertex3f(1, -1,  1)
-        # Top
-        glNormal3f(0, 1, 0)
-        glVertex3f(-1, 1, -1)
-        glVertex3f(-1, 1,  1)
-        glVertex3f( 1, 1,  1)
-        glVertex3f( 1, 1, -1)
-        # Bottom
-        glNormal3f(0, -1, 0)
-        glVertex3f(-1, -1, -1)
-        glVertex3f( 1, -1, -1)
-        glVertex3f( 1, -1,  1)
-        glVertex3f(-1, -1,  1)
-        glEnd()
+        view = QMatrix4x4()
+        view.lookAt(QVector3D(3, 3, 5), QVector3D(0, 0, 0), QVector3D(0, 1, 0))
 
-    def change_background_color(self, r, g, b):
-        self.color = [r, g, b]
-        self.update()
+        projection = QMatrix4x4()
+        projection.perspective(45.0, self.width() / self.height(), 0.1, 100.0)
+
+        self.shader_program.setUniformValue("model", model)
+        self.shader_program.setUniformValue("view", view)
+        self.shader_program.setUniformValue("projection", projection)
+        self.shader_program.setUniformValue("lightPos", 5.0, 5.0, 5.0)
+        self.shader_program.setUniformValue("viewPos", 3.0, 3.0, 5.0)
+        self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
+        self.shader_program.setUniformValue("lightColor", 1.0, 1.0, 1.0)
+
+        glBindVertexArray(self.vao)
+        glDrawArrays(GL_TRIANGLES, 0, 36)
+        glBindVertexArray(0)
+
+        self.shader_program.release()
+
+    def initShaders(self):
+        self.shader_program = QOpenGLShaderProgram()
+        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Vertex, vert):
+            print("Błąd wczytywania vertex shadera")
+        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Fragment, frag):
+            print("Błąd wczytywania fragment shadera")
+        if not self.shader_program.link():
+            print("Błąd linkowania shaderów")
+
+    def initCube(self):
+        vertices = generate_cube()  # Użyj funkcji generującej sześcian z cube.py
+
+        self.vao = glGenVertexArrays(1)
+        glBindVertexArray(self.vao)
+
+        self.vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
+        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
+
+        # Pozycje
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * vertices.itemsize, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(0)
+        # Normalne
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * vertices.itemsize, ctypes.c_void_p(3 * vertices.itemsize))
+        glEnableVertexAttribArray(1)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
+    def perspective(self, fov, aspect, near, far):
+        f = 1.0 / np.tan(np.radians(fov) / 2)
+        m = np.zeros((4, 4), dtype=np.float32)
+        m[0, 0] = f / aspect
+        m[1, 1] = f
+        m[2, 2] = (far + near) / (near - far)
+        m[2, 3] = (2 * far * near) / (near - far)
+        m[3, 2] = -1.0
+        return m
+
+    def lookAt(self, eye, target, up):
+        f = (target - eye)
+        f /= np.linalg.norm(f)
+        s = np.cross(f, up)
+        s /= np.linalg.norm(s)
+        u = np.cross(s, f)
+
+        m = np.identity(4, dtype=np.float32)
+        m[0, 0:3] = s
+        m[1, 0:3] = u
+        m[2, 0:3] = -f
+        m[0, 3] = -np.dot(s, eye)
+        m[1, 3] = -np.dot(u, eye)
+        m[2, 3] = np.dot(f, eye)
+        return m
 
 class MainWindow(QWidget):
     def __init__(self):
