@@ -45,13 +45,19 @@ class MyGLWidget(QOpenGLWidget):
         projection = QMatrix4x4()
         projection.perspective(45.0, self.width() / self.height(), 0.1, 100.0)
 
-        self.shader_program.setUniformValue("model", model)
+        self.shader_program.setUniformValue("M", model)
         self.shader_program.setUniformValue("view", view)
         self.shader_program.setUniformValue("projection", projection)
         self.shader_program.setUniformValue("lightPos", 5.0, 5.0, 5.0)
         self.shader_program.setUniformValue("viewPos", 3.0, 3.0, 5.0)
         self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
         self.shader_program.setUniformValue("lightColor", 1.0, 1.0, 1.0)
+
+        self.shader_program.setUniformValue("material_ambient", 0.2, 0.2, 0.2)
+        self.shader_program.setUniformValue("material_diffuse", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("material_shininess", 32.0)
+        self.shader_program.setUniformValue("color", 1.0, 0.3, 0.3)
+        self.shader_program.setUniformValue("camera_position", 3.0, 3.0, 5.0)
 
         glBindVertexArray(self.vao)
         glDrawArrays(GL_TRIANGLES, 0, 36)
@@ -61,10 +67,13 @@ class MyGLWidget(QOpenGLWidget):
 
     def initShaders(self):
         self.shader_program = QOpenGLShaderProgram()
-        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Vertex, vert):
+        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Vertex, phong_vert):
             print("Błąd wczytywania vertex shadera")
-        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Fragment, frag):
+        if not self.shader_program.addShaderFromSourceFile(QOpenGLShader.Fragment, phong_frag):
             print("Błąd wczytywania fragment shadera")
+        self.shader_program.bindAttributeLocation("position", 0)
+        self.shader_program.bindAttributeLocation("normal", 1)
+
         if not self.shader_program.link():
             print("Błąd linkowania shaderów")
 

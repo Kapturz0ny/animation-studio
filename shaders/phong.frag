@@ -3,7 +3,7 @@
 in vec3 v_position;
 in vec3 v_normal;
 
-out vec4 f_color;
+out vec4 fragColor;
 
 const vec3 light_position = vec3(0.0, 7.0, -15.0);
 const vec3 light_ambient = vec3(0.1, 0.1, 0.1);
@@ -35,5 +35,5 @@ void main()
 	
 	vec3 phong_color = clamp(ambient + diffuse + specular, 0.0, 1.0);
 	
-	f_color = vec4(phong_color*color, 1.0);
+	fragColor = vec4(phong_color*color, 1.0);
 }
