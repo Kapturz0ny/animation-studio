@@ -21,6 +21,17 @@ class MyGLWidget(QOpenGLWidget):
         self.vao = None
         self.vbo = None
 
+        self.light_position = QVector3D(5.0, 5.0, 1.0)
+        # self.light_color = QVector3D(1.0, 1.0, 1.0)
+        self.material_ambient = QVector3D(0.2, 0.2, 0.2)
+        self.material_diffuse = QVector3D(1.0, 1.0, 1.0)
+        self.material_shininess = 32.0
+
+        self.light_ambient = QVector3D(0.1, 0.1, 0.1)
+        self.light_diffuse = QVector3D(1.0, 1.0, 1.0)
+        self.light_specular = QVector3D(0.8, 0.8, 0.8)
+
+
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
         self.initShaders()
@@ -45,20 +56,23 @@ class MyGLWidget(QOpenGLWidget):
         projection = QMatrix4x4()
         projection.perspective(45.0, self.width() / self.height(), 0.1, 100.0)
 
-        self.shader_program.setUniformValue("M", model)
-        self.shader_program.setUniformValue("view", view)
         self.shader_program.setUniformValue("projection", projection)
-        self.shader_program.setUniformValue("lightPos", 5.0, 5.0, 5.0)
-        self.shader_program.setUniformValue("viewPos", 3.0, 3.0, 5.0)
-        self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
-        self.shader_program.setUniformValue("lightColor", 1.0, 1.0, 1.0)
-
-        self.shader_program.setUniformValue("material_ambient", 0.2, 0.2, 0.2)
-        self.shader_program.setUniformValue("material_diffuse", 1.0, 1.0, 1.0)
-        self.shader_program.setUniformValue("material_shininess", 32.0)
+        self.shader_program.setUniformValue("view", view)
+        self.shader_program.setUniformValue("M", model)
+        
+        self.shader_program.setUniformValue("light_position", self.light_position)
+        self.shader_program.setUniformValue("light_ambient", self.light_ambient)
+        self.shader_program.setUniformValue("light_diffuse", self.light_diffuse)
+        self.shader_program.setUniformValue("light_specular", self.light_specular)
+        self.shader_program.setUniformValue("material_ambient", self.material_ambient)
+        self.shader_program.setUniformValue("material_diffuse",self.material_diffuse)
+        self.shader_program.setUniformValue("material_shininess", self.material_shininess)
         self.shader_program.setUniformValue("color", 1.0, 0.3, 0.3)
         self.shader_program.setUniformValue("camera_position", 3.0, 3.0, 5.0)
 
+        # self.shader_program.setUniformValue("viewPos", 0.0, 3.0, 5.0)
+        # self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
+        # self.shader_program.setUniformValue("lightColor", self.light_color)
         glBindVertexArray(self.vao)
         glDrawArrays(GL_TRIANGLES, 0, 36)
         glBindVertexArray(0)
