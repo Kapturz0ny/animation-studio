@@ -1,10 +1,11 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea, QFileDialog, QMessageBox
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, QVector3D
 from PyQt5.QtWidgets import QOpenGLWidget
 from PyQt5.QtCore import Qt, QSize
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from utils.cube import generate_cube
+from loader.obj_loader import load_obj
 import numpy as np
 import sys
 
@@ -20,6 +21,9 @@ class MyGLWidget(QOpenGLWidget):
         self.shader_program = None
         self.vao = None
         self.vbo = None
+        self.additional_vaos = []
+        self.additional_vbos = []
+        self.additional_vertex_counts = []
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
@@ -61,6 +65,11 @@ class MyGLWidget(QOpenGLWidget):
 
         glBindVertexArray(self.vao)
         glDrawArrays(GL_TRIANGLES, 0, 36)
+        # glBindVertexArray(0)
+
+        for vao, count in zip(self.additional_vaos, self.additional_vertex_counts):
+            glBindVertexArray(vao)
+            glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
 
         self.shader_program.release()
@@ -96,6 +105,39 @@ class MyGLWidget(QOpenGLWidget):
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
+
+
+    def loadModel(self, vertices_np):
+        self.makeCurrent()  # AKTYWUJ kontekst OpenGL!
+
+
+        vao = glGenVertexArrays(1)
+        glBindVertexArray(vao)
+
+        vbo = glGenBuffers(1)
+        glBindBuffer(GL_ARRAY_BUFFER, vbo)
+        glBufferData(GL_ARRAY_BUFFER, vertices_np.nbytes, vertices_np, GL_STATIC_DRAW)
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * vertices_np.itemsize, ctypes.c_void_p(0))
+        glEnableVertexAttribArray(0)
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * vertices_np.itemsize, ctypes.c_void_p(3 * vertices_np.itemsize))
+        glEnableVertexAttribArray(1)
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+        glBindVertexArray(0)
+
+
+        #  ZAPISZ do listy, żeby rysować w paintGL
+        self.additional_vaos.append(vao)
+        self.additional_vbos.append(vbo)
+        self.additional_vertex_counts.append(len(vertices_np) // 6)
+
+
+
+        self.doneCurrent()  # zwolnij kontekst
+        self.update()
+
+
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov) / 2)
@@ -159,7 +201,10 @@ class MainWindow(QWidget):
         self.figure_title_row = QHBoxLayout()
         self.figure_label = QLabel("Figures ", self)
         self.figure_label.setStyleSheet("border: none;")
+
         self.figure_add = QPushButton("+")
+        self.figure_add.clicked.connect(self.load_model)
+
         self.figure_title_row.addWidget(self.figure_label)
         self.figure_title_row.addWidget(self.figure_add)
         self.helper_figure_title.setLayout(self.figure_title_row)
@@ -268,8 +313,46 @@ class MainWindow(QWidget):
         self.setLayout(self.everything_layout)
         self.resize(400, 500)
 
+
+
+    def load_model(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, "Wybierz plik OBJ", "", "OBJ Files (*.obj)")
+        if not file_path:
+            return  # użytkownik anulował wybór
+
+        try:
+            vertices_list, faces  = load_obj(file_path)
+            if not vertices_list or not faces:
+                raise ValueError("Nie znaleziono poprawnych danych w pliku.")
+
+            # Oblicz normalne i przygotuj dane w formacie: [x, y, z, nx, ny, nz]
+            vertex_data = []
+            for face in faces:
+                v0 = np.array(vertices_list[face[0]])
+                v1 = np.array(vertices_list[face[1]])
+                v2 = np.array(vertices_list[face[2]])
+
+                # normalna dla trójkąta
+                normal = np.cross(v1 - v0, v2 - v0)
+                normal = normal / np.linalg.norm(normal) if np.linalg.norm(normal) > 0 else np.array([0.0, 0.0, 1.0])
+
+                for idx in face[:3]:  # zakładamy trójkąty
+                    pos = vertices_list[idx]
+                    vertex_data.extend([*pos, *normal])
+
+            vertices_np = np.array(vertex_data, dtype=np.float32)
+
+
+            self.gl_widget.loadModel(vertices_np)
+
+
+
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się wczytać modelu:\n{str(e)}")
+
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
