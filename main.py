@@ -70,7 +70,7 @@ class MyGLWidget(QOpenGLWidget):
         self.shader_program.setUniformValue("material_diffuse", 1.0, 1.0, 1.0)
         self.shader_program.setUniformValue("material_shininess", 32.0)
         self.shader_program.setUniformValue("color", 1.0, 0.3, 0.3)
-        self.shader_program.setUniformValue("camera_position", 3.0, 3.0, 5.0)
+        self.shader_program.setUniformValue("camera_position", self.camera.position)
 
         glBindVertexArray(self.vao)
         glDrawArrays(GL_TRIANGLES, 0, 36)
