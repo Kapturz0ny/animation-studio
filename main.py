@@ -50,13 +50,18 @@ class MainWindow(QWidget):
         self.ambient_area.addWidget(self.ambient_label)
         self.ambient_area.addWidget(self.ambient_textbox)
         self.helper_ambient.setLayout(self.ambient_area)  
+
+
         # figures title
         self.helper_figure_title = QWidget()
         self.helper_figure_title.setStyleSheet("border: 2px solid black;")
         self.figure_title_row = QHBoxLayout()
         self.figure_label = QLabel("Figures ", self)
         self.figure_label.setStyleSheet("border: none;")
+
         self.figure_add = QPushButton("+")
+        self.figure_add.clicked.connect(self.load_model)
+
         self.figure_title_row.addWidget(self.figure_label)
         self.figure_title_row.addWidget(self.figure_add)
         self.helper_figure_title.setLayout(self.figure_title_row)
@@ -67,8 +72,10 @@ class MainWindow(QWidget):
         self.figure_scroll = QScrollArea(self)
         self.figure_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.figure_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.figure_scroll.setLayout(self.figure_box)
         self.helper_figure_box.setLayout(self.figure_box)
+        self.figure_scroll.setWidgetResizable(True)
+        self.figure_scroll.setWidget(self.helper_figure_box)
+
         # lights title
         self.helper_lights_title = QWidget()
         self.helper_lights_title.setStyleSheet("border: 2px solid black;")
@@ -86,14 +93,15 @@ class MainWindow(QWidget):
         self.lights_scroll = QScrollArea(self)
         self.lights_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.lights_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.lights_scroll.setLayout(self.lights_box)
         self.helper_lights_box.setLayout(self.lights_box)
+        self.lights_scroll.setWidgetResizable(True)
+        self.lights_scroll.setWidget(self.helper_lights_box)
         # add to objects layout
         self.objects_layout.addWidget(self.helper_ambient, stretch=1)
         self.objects_layout.addWidget(self.helper_figure_title, stretch=2)
-        self.objects_layout.addWidget(self.helper_figure_box, stretch=10)
+        self.objects_layout.addWidget(self.figure_scroll, stretch=10)
         self.objects_layout.addWidget(self.helper_lights_title, stretch=2)
-        self.objects_layout.addWidget(self.helper_lights_box, stretch=10)
+        self.objects_layout.addWidget(self.lights_scroll, stretch=10)
 
         # prepare editor section
         # buttons row
@@ -126,14 +134,14 @@ class MainWindow(QWidget):
         self.editor_layout.addWidget(self.helper_parameters_object, stretch=12)
         self.editor_layout.addWidget(self.helper_parameters_frame, stretch=12)
         
-        #prepare animation section
+        # prepare animation section
         self.helper_animation_header = QWidget()
         self.helper_animation_header.setStyleSheet("border: 2px solid black;")
         self.helper_animation_frames = QWidget()
         self.helper_animation_frames.setStyleSheet("border: 2px solid black;")
         self.animation_header = QHBoxLayout()
         self.animation_frames = QHBoxLayout()
-        #header
+        # header
         self.animation_label = QLabel("Animation")
         self.add_frame = QPushButton("+")
         self.delete_frame = QPushButton("X")
@@ -145,15 +153,15 @@ class MainWindow(QWidget):
         self.animation_header.addWidget(self.frame_number)
         self.animation_header.addWidget(self.download)
         self.helper_animation_header.setLayout(self.animation_header)
-        #frames 
+        # frames 
         for i in range(40):
             self.animation_frames.addWidget(QPushButton(""))
         self.helper_animation_frames.setLayout(self.animation_frames)
-        #add to animation layout
+        # add to animation layout
         self.animation_layout.addWidget(self.helper_animation_header)
         self.animation_layout.addWidget(self.helper_animation_frames)
 
-        #put layouts inside one another
+        # put layouts inside one another
         self.objects_gl_editor_layout.addLayout(self.objects_layout, stretch=2)
         self.objects_gl_editor_layout.addWidget(self.gl_widget, stretch=5)
         self.objects_gl_editor_layout.addLayout(self.editor_layout, stretch=2)
@@ -164,7 +172,7 @@ class MainWindow(QWidget):
 
         self.setLayout(self.everything_layout)
         self.resize(400, 500)
-
+    
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
 
