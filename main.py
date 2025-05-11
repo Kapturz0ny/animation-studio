@@ -24,6 +24,8 @@ class MyGLWidget(QOpenGLWidget):
         self.additional_vaos = []
         self.additional_vbos = []
         self.additional_vertex_counts = []
+        self.additional_visible_flags = []
+
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
@@ -67,12 +69,15 @@ class MyGLWidget(QOpenGLWidget):
         glDrawArrays(GL_TRIANGLES, 0, 36)
         # glBindVertexArray(0)
 
-        for vao, count in zip(self.additional_vaos, self.additional_vertex_counts):
+        for vao, count, visible in zip(self.additional_vaos, self.additional_vertex_counts, self.additional_visible_flags):
+            if not visible:
+                continue
             glBindVertexArray(vao)
             glDrawArrays(GL_TRIANGLES, 0, count)
         glBindVertexArray(0)
 
         self.shader_program.release()
+
 
     def initShaders(self):
         self.shader_program = QOpenGLShaderProgram()
@@ -131,6 +136,8 @@ class MyGLWidget(QOpenGLWidget):
         self.additional_vertex_counts.append(len(vertices_np) // 6)
 
         self.doneCurrent()  # free context
+        self.additional_visible_flags.append(True) 
+
         self.update()
 
 
@@ -160,6 +167,44 @@ class MyGLWidget(QOpenGLWidget):
         m[1, 3] = -np.dot(u, eye)
         m[2, 3] = np.dot(f, eye)
         return m
+
+
+
+class FigureItem(QWidget):
+    def __init__(self, name, index, gl_widget):
+        super().__init__()
+        self.name = name
+        self.index = index
+        self.gl_widget = gl_widget
+
+        layout = QHBoxLayout()
+        self.label = QLabel(name)
+        self.toggle_button = QPushButton("✖")
+        self.toggle_button.setFixedSize(24, 24)
+        self.toggle_button.setCheckable(True)
+        self.toggle_button.setChecked(True)
+        self.toggle_button.clicked.connect(self.toggle_visibility)
+
+        layout.addWidget(self.label)
+        layout.addWidget(self.toggle_button)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
+
+    def toggle_visibility(self):
+        current_state = self.toggle_button.isChecked()
+        self.gl_widget.additional_visible_flags[self.index] = current_state
+        self.update_icon()
+        self.gl_widget.update()
+    
+    def update_icon(self):
+        if self.toggle_button.isChecked():
+            self.toggle_button.setText("✖")  # figure visible
+        else:
+            self.toggle_button.setText("")   # figure invisible
+
+
+
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -346,9 +391,10 @@ class MainWindow(QWidget):
 
             # Add figure name to scrollbox:
             file_name = file_path.split("/")[-1]
-            label = QLabel(file_name)
-            label.setStyleSheet("padding: 4px; border: 1px solid gray;")
-            self.figure_box.addWidget(label)
+            index = len(self.gl_widget.additional_vaos) - 1  # Ostatni dodany
+            figure_item = FigureItem(file_name, index, self.gl_widget)
+            self.figure_box.addWidget(figure_item)
+
 
 
 
