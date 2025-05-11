@@ -257,11 +257,11 @@ class MyGLWidget(QOpenGLWidget):
     def initShaders(self):
         self.shader_program = QOpenGLShaderProgram()
         if not self.shader_program.addShaderFromSourceFile(
-            QOpenGLShader.Vertex, phong_vert
+            QOpenGLShader.Vertex, phong_vert  # type: ignore
         ):
             print("Błąd wczytywania vertex shadera")
         if not self.shader_program.addShaderFromSourceFile(
-            QOpenGLShader.Fragment, phong_frag
+            QOpenGLShader.Fragment, phong_frag  # type: ignore
         ):
             print("Błąd wczytywania fragment shadera")
         self.shader_program.bindAttributeLocation("position", 0)
