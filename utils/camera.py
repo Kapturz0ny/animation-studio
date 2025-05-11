@@ -9,19 +9,25 @@ class Direction(Enum):
     LEFT = "LEFT"
     RIGHT = "RIGHT"
     UP = "UP"
-    DOWN = "DOWN" 
+    DOWN = "DOWN"
 
 
 class Camera:
-    def __init__(self, position=QVector3D(3, 3, 5), world_up=QVector3D(0, 1, 0), yaw=-135.0, pitch=-30.0):
+    def __init__(
+        self,
+        position=QVector3D(3, 3, 5),
+        world_up=QVector3D(0, 1, 0),
+        yaw=-135.0,
+        pitch=-30.0,
+    ):
         self.position = position
-        self.front = QVector3D(0, 0, -1) 
+        self.front = QVector3D(0, 0, -1)
         self.world_up = world_up
         self.yaw = yaw
         self.pitch = pitch
         self.movement_speed = 0.1
         self.mouse_sensitivity = 0.1
-        self.zoom_fov = 45.0 # base fov
+        self.zoom_fov = 45.0  # base fov
 
         self.right = QVector3D()
         self.up = QVector3D()
