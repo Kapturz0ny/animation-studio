@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea, QFileDialog, QMessageBox, QSizePolicy
 from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, QVector3D
 from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from utils.cube import generate_cube
@@ -141,6 +141,21 @@ class MyGLWidget(QOpenGLWidget):
         self.update()
 
 
+    def delete_model(self, index):
+        if 0 <= index < len(self.additional_vaos):
+            self.makeCurrent()
+            glDeleteVertexArrays(1, [self.additional_vaos[index]])
+            glDeleteBuffers(1, [self.additional_vbos[index]])
+            self.doneCurrent()
+
+            del self.additional_vaos[index]
+            del self.additional_vbos[index]
+            del self.additional_vertex_counts[index]
+            del self.additional_visible_flags[index]
+
+            self.update()
+
+
 
     def perspective(self, fov, aspect, near, far):
         f = 1.0 / np.tan(np.radians(fov) / 2)
@@ -171,11 +186,12 @@ class MyGLWidget(QOpenGLWidget):
 
 
 class FigureItem(QWidget):
-    def __init__(self, name, index, gl_widget):
+    def __init__(self, name, index, gl_widget, parent_layout):
         super().__init__()
         self.name = name
         self.index = index
         self.gl_widget = gl_widget
+        self.parent_layout = parent_layout
 
         layout = QHBoxLayout()
         self.label = QLabel(name)
@@ -185,8 +201,14 @@ class FigureItem(QWidget):
         self.toggle_button.setChecked(True)
         self.toggle_button.clicked.connect(self.toggle_visibility)
 
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.setStyleSheet("background-color: lightgray; color: black; padding: 0px; margin: 0px;")
+        self.delete_button.setFixedSize(60, 24) 
+        self.delete_button.clicked.connect(self.delete_self)
+        
         layout.addWidget(self.label)
         layout.addWidget(self.toggle_button)
+        layout.addWidget(self.delete_button)  
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
@@ -201,6 +223,12 @@ class FigureItem(QWidget):
             self.toggle_button.setText("✖")  # figure visible
         else:
             self.toggle_button.setText("")   # figure invisible
+
+    def delete_self(self):
+        self.gl_widget.delete_model(self.index)
+        self.setParent(None)
+        self.parent_layout.removeWidget(self)
+        self.deleteLater()
 
 
 
@@ -392,7 +420,7 @@ class MainWindow(QWidget):
             # Add figure name to scrollbox:
             file_name = file_path.split("/")[-1]
             index = len(self.gl_widget.additional_vaos) - 1  # Ostatni dodany
-            figure_item = FigureItem(file_name, index, self.gl_widget)
+            figure_item = FigureItem(file_name, index, self.gl_widget, self.figure_box)
             self.figure_box.addWidget(figure_item)
 
 
