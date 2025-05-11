@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QMessageBox,
     QOpenGLWidget,
+    QGroupBox,
 )
 from PyQt5.QtGui import (
     QOpenGLShaderProgram,
@@ -73,7 +74,9 @@ class MyGLWidget(QOpenGLWidget):
         self.additional_vertex_counts = []
         self.additional_visible_flags = []
 
-        self.camera = Camera(position=QVector3D(3, 3, 5))
+        self.camera = Camera(
+            position=QVector3D(3, 3, 5), yaw=-135.0, pitch=-30.0, zoom_fov=45.0
+        )
         self.camera_interaction_mode = False
         self.last_mouse_pos = QPoint()
         self.keys_pressed = set()
@@ -488,21 +491,37 @@ class MainWindow(QWidget):
         self.objects_layout.addWidget(self.lights_scroll, stretch=10)
 
         # prepare editor section
-        # buttons row
-        self.helper_buttons = QWidget()
-        self.helper_buttons.setStyleSheet("border: 2px solid black;")
-        self.buttons_area = QHBoxLayout()
-        self.cursor_button = QPushButton("^")
+        # camera section
+        self.camera_controls_group = QGroupBox("Camera")
+        self.camera_controls_group.setStyleSheet(
+            """
+            QGroupBox {
+                border: 2px solid black;
+                margin-top: 12px;        
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                padding: 0 5px;
+                left: 10px;
+            }
+        """
+        )
 
-        self.arrows_button = QPushButton("move camera")
-        self.arrows_button.setCheckable(True)
-        self.arrows_button.toggled.connect(self.gl_widget.set_camera_interaction_active)
+        self.camera_controls_layout = QHBoxLayout()
 
-        self.hand_button = QPushButton("hand")
-        self.buttons_area.addWidget(self.cursor_button)
-        self.buttons_area.addWidget(self.arrows_button)
-        self.buttons_area.addWidget(self.hand_button)
-        self.helper_buttons.setLayout(self.buttons_area)
+        self.move_camera_button = QPushButton("Move")
+        self.move_camera_button.setCheckable(True)
+        self.move_camera_button.toggled.connect(
+            self.gl_widget.set_camera_interaction_active
+        )
+
+        self.reset_camera_button = QPushButton("Reset")
+        self.reset_camera_button.clicked.connect(self.reset_camera_view)
+
+        self.camera_controls_layout.addWidget(self.move_camera_button)
+        self.camera_controls_layout.addWidget(self.reset_camera_button)
+        self.camera_controls_group.setLayout(self.camera_controls_layout)
 
         # parameters of an object
         self.helper_parameters_object = QWidget()
@@ -519,7 +538,7 @@ class MainWindow(QWidget):
         self.parameters_frame_area.addWidget(self.param_frame_number)
         self.helper_parameters_frame.setLayout(self.parameters_frame_area)
         # add to editor layout
-        self.editor_layout.addWidget(self.helper_buttons, stretch=1)
+        self.editor_layout.addWidget(self.camera_controls_group, stretch=1)
         self.editor_layout.addWidget(self.helper_parameters_object, stretch=12)
         self.editor_layout.addWidget(self.helper_parameters_frame, stretch=12)
         # prepare animation section
@@ -584,6 +603,10 @@ class MainWindow(QWidget):
 
         self.setLayout(self.everything_layout)
         self.resize(1200, 800)
+
+    def reset_camera_view(self):
+        self.gl_widget.camera.reset_state()
+        self.gl_widget.update()
 
     def load_model(self):
         file_path, _ = QFileDialog.getOpenFileName(

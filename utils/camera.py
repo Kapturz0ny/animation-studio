@@ -19,15 +19,27 @@ class Camera:
         world_up=QVector3D(0, 1, 0),
         yaw=-135.0,
         pitch=-30.0,
+        movement_speed=0.1,
+        mouse_sensitivity=0.1,
+        zoom_fov=45.0,
     ):
         self.position = position
         self.front = QVector3D(0, 0, -1)
         self.world_up = world_up
         self.yaw = yaw
         self.pitch = pitch
-        self.movement_speed = 0.1
-        self.mouse_sensitivity = 0.1
-        self.zoom_fov = 45.0  # base fov
+        self.movement_speed = movement_speed
+        self.mouse_sensitivity = mouse_sensitivity
+        self.zoom_fov = zoom_fov  # base fov
+
+        # Store initial values for reset
+        self.initial_position = QVector3D(position)
+        self.initial_world_up = QVector3D(world_up)
+        self.initial_yaw = yaw
+        self.initial_pitch = pitch
+        self.initial_movement_speed = movement_speed
+        self.initial_mouse_sensitivity = mouse_sensitivity
+        self.initial_zoom_fov = zoom_fov
 
         self.right = QVector3D()
         self.up = QVector3D()
@@ -90,3 +102,13 @@ class Camera:
             self.position += self.world_up * actual_velocity
         if direction == Direction.DOWN:
             self.position -= self.world_up * actual_velocity
+
+    def reset_state(self):
+        self.position = QVector3D(self.initial_position)
+        self.world_up = QVector3D(self.initial_world_up)
+        self.yaw = self.initial_yaw
+        self.pitch = self.initial_pitch
+        self.movement_speed = self.initial_movement_speed
+        self.mouse_sensitivity = self.initial_mouse_sensitivity
+        self.zoom_fov = self.initial_zoom_fov
+        self._update_camera_vectors()
