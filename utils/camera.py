@@ -1,5 +1,15 @@
 from PyQt5.QtGui import QVector3D, QMatrix4x4
 import numpy as np
+from enum import Enum
+
+
+class Direction(Enum):
+    FORWARD = "FORWARD"
+    BACKWARD = "BACKWARD"
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
+    UP = "UP"
+    DOWN = "DOWN" 
 
 
 class Camera:
@@ -9,7 +19,7 @@ class Camera:
         self.world_up = world_up
         self.yaw = yaw
         self.pitch = pitch
-        self.movement_speed = 2.5
+        self.movement_speed = 0.1
         self.mouse_sensitivity = 0.1
         self.zoom_fov = 45.0 # base fov
 
@@ -58,3 +68,19 @@ class Camera:
             self.zoom_fov = 1.0
         if self.zoom_fov > 75.0:
             self.zoom_fov = 75.0
+
+    def process_keyboard_movement(self, direction, velocity_multiplier=1.0):
+        actual_velocity = self.movement_speed * velocity_multiplier
+
+        if direction == Direction.FORWARD:
+            self.position += self.front * actual_velocity
+        if direction == Direction.BACKWARD:
+            self.position -= self.front * actual_velocity
+        if direction == Direction.LEFT:
+            self.position -= self.right * actual_velocity
+        if direction == Direction.RIGHT:
+            self.position += self.right * actual_velocity
+        if direction == Direction.UP:
+            self.position += self.world_up * actual_velocity
+        if direction == Direction.DOWN:
+            self.position -= self.world_up * actual_velocity

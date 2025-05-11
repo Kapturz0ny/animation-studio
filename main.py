@@ -1,12 +1,14 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QScrollArea
-from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, QVector3D, QMouseEvent, QWheelEvent 
+from PyQt5.QtGui import QOpenGLShaderProgram, QOpenGLShader, QMatrix4x4, QVector3D, QMouseEvent, QWheelEvent, QKeyEvent
 from PyQt5.QtWidgets import QOpenGLWidget
-from PyQt5.QtCore import Qt, QSize, QPoint
-from OpenGL.GL import *
-from OpenGL.GLU import *
+from PyQt5.QtCore import Qt, QPoint, QTimer
+from OpenGL.GL import glEnable, glClearColor, glClear, glBindVertexArray, glDrawArrays, glGenVertexArrays, glGenBuffers, glBindBuffer, glBufferData, glVertexAttribPointer, glEnableVertexAttribArray, glViewport, GL_DEPTH_TEST, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, GL_ARRAY_BUFFER, GL_STATIC_DRAW, GL_FLOAT, GL_FALSE, GL_TRIANGLES
+# from OpenGL.GLU import *
 from utils.cube import generate_cube
-from utils.camera import Camera
+from utils.camera import Camera, Direction
 import sys
+import ctypes
+
 
 phong_vert = "shaders/phong.vert"
 phong_frag = "shaders/phong.frag"
@@ -24,6 +26,12 @@ class MyGLWidget(QOpenGLWidget):
         self.camera = Camera(position=QVector3D(3, 3, 5))
         self.camera_interaction_mode = False
         self.last_mouse_pos = QPoint()
+        self.keys_pressed = set()
+
+        # timer for smooth camera movement
+        self.camera_move_timer = QTimer(self)
+        self.camera_move_timer.timeout.connect(self.update_camera_position_from_keys)
+        self.timer_interval = 16
 
     def initializeGL(self):
         glEnable(GL_DEPTH_TEST)
@@ -35,7 +43,7 @@ class MyGLWidget(QOpenGLWidget):
         glViewport(0, 0, w, h)
 
     def paintGL(self):
-        glClearColor(0.1, 0.1, 0.1, 1.0)
+        glClearColor(self.color[0], self.color[1], self.color[2], 1.0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         if not self.shader_program:
@@ -70,11 +78,27 @@ class MyGLWidget(QOpenGLWidget):
 
         self.shader_program.release()
 
+    def set_camera_interaction_active(self, active):
+        """Pomocnicza metoda do włączania/wyłączania trybu interakcji z kamerą."""
+        self.camera_interaction_mode = active
+        if active:
+            self.setFocus(Qt.FocusReason.MouseFocusReason)
+            if not self.camera_move_timer.isActive():
+                self.camera_move_timer.start(self.timer_interval)
+            print("Tryb kamery (mysz + klawiatura) WŁĄCZONY")
+        else:
+            self.clearFocus()
+            self.unsetCursor()
+            if self.camera_move_timer.isActive():
+                self.camera_move_timer.stop()
+            self.keys_pressed.clear()
+            print("Tryb kamery (mysz + klawiatura) WYŁĄCZONY")
+
     def mousePressEvent(self, event: QMouseEvent):
         if self.camera_interaction_mode and event.buttons() == Qt.MouseButton.LeftButton:
             self.last_mouse_pos = event.pos()
-            self.setCursor(Qt.ClosedHandCursor)
-            self.update()
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            # self.update()
         else:
             super().mousePressEvent(event)
 
@@ -95,7 +119,7 @@ class MyGLWidget(QOpenGLWidget):
     def mouseReleaseEvent(self, event: QMouseEvent):
         if self.camera_interaction_mode and event.button() == Qt.MouseButton.LeftButton:
             self.unsetCursor()
-            self.update()
+            # self.update()
         else:
             super().mouseReleaseEvent(event)
 
@@ -106,6 +130,51 @@ class MyGLWidget(QOpenGLWidget):
             self.update()
         else:
             super().wheelEvent(event)
+
+    def keyPressEvent(self, event: QKeyEvent):
+        if self.camera_interaction_mode:
+            self.keys_pressed.add(event.key())
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QKeyEvent):
+        if self.camera_interaction_mode and not event.isAutoRepeat():
+            if event.key() in self.keys_pressed:
+                self.keys_pressed.remove(event.key())
+            event.accept()
+        else:
+            super().keyReleaseEvent(event)
+
+    def update_camera_position_from_keys(self):
+        """Aktualizuje pozycję kamery na podstawie wciśniętych klawiszy."""
+        if not self.camera_interaction_mode or not self.hasFocus():
+            return
+
+        moved = False
+        velocity_multiplier = 1.0
+
+        if Qt.Key.Key_W in self.keys_pressed:
+            self.camera.process_keyboard_movement(Direction.FORWARD, velocity_multiplier)
+            moved = True
+        if Qt.Key.Key_S in self.keys_pressed:
+            self.camera.process_keyboard_movement(Direction.BACKWARD, velocity_multiplier)
+            moved = True
+        if Qt.Key.Key_A in self.keys_pressed:
+            self.camera.process_keyboard_movement(Direction.LEFT, velocity_multiplier)
+            moved = True
+        if Qt.Key.Key_D in self.keys_pressed:
+            self.camera.process_keyboard_movement(Direction.RIGHT, velocity_multiplier)
+            moved = True
+        if Qt.Key.Key_Space in self.keys_pressed:
+            self.camera.process_keyboard_movement(Direction.UP, velocity_multiplier)
+            moved = True
+        if Qt.Key.Key_Control in self.keys_pressed: # Lewy Ctrl
+            self.camera.process_keyboard_movement(Direction.DOWN, velocity_multiplier)
+            moved = True
+        
+        if moved:
+            self.update()
 
     def initShaders(self):
         self.shader_program = QOpenGLShaderProgram()
@@ -148,7 +217,7 @@ class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Program do animacji")
-        self.setGeometry(700, 300, 500, 500)
+        # self.setGeometry(700, 300, 500, 500)
 
         # two main sections
         self.objects_gl_editor_widget = QWidget()
@@ -189,8 +258,8 @@ class MainWindow(QWidget):
         self.helper_figure_box.setStyleSheet("border: 2px solid black;")
         self.figure_box = QVBoxLayout()
         self.figure_scroll = QScrollArea(self)
-        self.figure_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.figure_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.figure_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.figure_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.figure_scroll.setLayout(self.figure_box)
         self.helper_figure_box.setLayout(self.figure_box)
         # lights title
@@ -208,8 +277,8 @@ class MainWindow(QWidget):
         self.helper_lights_box.setStyleSheet("border: 2px solid black;")
         self.lights_box = QVBoxLayout()
         self.lights_scroll = QScrollArea(self)
-        self.lights_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.lights_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.lights_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.lights_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.lights_scroll.setLayout(self.lights_box)
         self.helper_lights_box.setLayout(self.lights_box)
         # add to objects layout
@@ -228,7 +297,7 @@ class MainWindow(QWidget):
         
         self.arrows_button = QPushButton("move camera")
         self.arrows_button.setCheckable(True) 
-        self.arrows_button.toggled.connect(self.toggle_camera_mode) 
+        self.arrows_button.toggled.connect(self.gl_widget.set_camera_interaction_active)
 
         self.hand_button = QPushButton("hand")
         self.buttons_area.addWidget(self.cursor_button)
@@ -278,8 +347,8 @@ class MainWindow(QWidget):
         
         self.animation_frames_scroll_area = QScrollArea()
         self.animation_frames_scroll_area.setWidgetResizable(True)
-        self.animation_frames_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.animation_frames_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff) 
+        self.animation_frames_scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.animation_frames_scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff) 
 
         self.animation_frames_container = QWidget() 
         self.animation_frames_layout_internal = QHBoxLayout(self.animation_frames_container) 
@@ -312,22 +381,11 @@ class MainWindow(QWidget):
         self.setLayout(self.everything_layout)
         self.resize(1200, 800) 
 
-    def toggle_camera_mode(self, checked):
-        self.gl_widget.camera_interaction_mode = checked
-        if checked:
-            self.gl_widget.setFocus() 
-            print("Tryb kamery (tylko mysz) WŁĄCZONY")
-        else:
-            self.gl_widget.clearFocus() 
-            self.gl_widget.unsetCursor() 
-            print("Tryb kamery (tylko mysz) WYŁĄCZONY")
-
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     window = MainWindow()
-    window.resize(600, 400)
     window.show()
     sys.exit(app.exec_())
