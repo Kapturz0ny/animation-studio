@@ -110,7 +110,6 @@ class MyGLWidget(QOpenGLWidget):
     def loadModel(self, vertices_np):
         self.makeCurrent()  # activate OpenGL context
 
-
         vao = glGenVertexArrays(1)
         glBindVertexArray(vao)
 
@@ -126,13 +125,10 @@ class MyGLWidget(QOpenGLWidget):
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
-
         # save to list to draw in paintGL
         self.additional_vaos.append(vao)
         self.additional_vbos.append(vbo)
         self.additional_vertex_counts.append(len(vertices_np) // 6)
-
-
 
         self.doneCurrent()  # free context
         self.update()
@@ -195,6 +191,8 @@ class MainWindow(QWidget):
         self.ambient_area.addWidget(self.ambient_label)
         self.ambient_area.addWidget(self.ambient_textbox)
         self.helper_ambient.setLayout(self.ambient_area)  
+
+
         # figures title
         self.helper_figure_title = QWidget()
         self.helper_figure_title.setStyleSheet("border: 2px solid black;")
@@ -217,6 +215,8 @@ class MainWindow(QWidget):
         self.figure_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.figure_scroll.setLayout(self.figure_box)
         self.helper_figure_box.setLayout(self.figure_box)
+
+
         # lights title
         self.helper_lights_title = QWidget()
         self.helper_lights_title.setStyleSheet("border: 2px solid black;")
@@ -342,8 +342,13 @@ class MainWindow(QWidget):
 
             vertices_np = np.array(vertex_data, dtype=np.float32)
 
-
             self.gl_widget.loadModel(vertices_np)
+
+            # Add figure name to scrollbox:
+            file_name = file_path.split("/")[-1]
+            label = QLabel(file_name)
+            label.setStyleSheet("padding: 4px; border: 1px solid gray;")
+            self.figure_box.addWidget(label)
 
 
 
