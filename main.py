@@ -286,9 +286,9 @@ class MainWindow(QWidget):
         self.figure_scroll = QScrollArea(self)
         self.figure_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.figure_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.figure_scroll.setLayout(self.figure_box)
         self.helper_figure_box.setLayout(self.figure_box)
-
+        self.figure_scroll.setWidgetResizable(True)
+        self.figure_scroll.setWidget(self.helper_figure_box)
 
         # lights title
         self.helper_lights_title = QWidget()
@@ -307,14 +307,15 @@ class MainWindow(QWidget):
         self.lights_scroll = QScrollArea(self)
         self.lights_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.lights_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.lights_scroll.setLayout(self.lights_box)
         self.helper_lights_box.setLayout(self.lights_box)
+        self.lights_scroll.setWidgetResizable(True)
+        self.lights_scroll.setWidget(self.helper_lights_box)
         # add to objects layout
         self.objects_layout.addWidget(self.helper_ambient, stretch=1)
         self.objects_layout.addWidget(self.helper_figure_title, stretch=2)
-        self.objects_layout.addWidget(self.helper_figure_box, stretch=10)
+        self.objects_layout.addWidget(self.figure_scroll, stretch=10)
         self.objects_layout.addWidget(self.helper_lights_title, stretch=2)
-        self.objects_layout.addWidget(self.helper_lights_box, stretch=10)
+        self.objects_layout.addWidget(self.lights_scroll, stretch=10)
 
         # prepare editor section
         # buttons row
