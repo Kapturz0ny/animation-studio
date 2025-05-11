@@ -87,7 +87,7 @@ class MyGLWidget(QOpenGLWidget):
             print("Błąd linkowania shaderów")
 
     def initCube(self):
-        vertices = generate_cube()  # Użyj funkcji generującej sześcian z cube.py
+        vertices = generate_cube()  # use function that generates the cube
 
         self.vao = glGenVertexArrays(1)
         glBindVertexArray(self.vao)
@@ -96,10 +96,10 @@ class MyGLWidget(QOpenGLWidget):
         glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
         glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
 
-        # Pozycje
+        # Positions
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * vertices.itemsize, ctypes.c_void_p(0))
         glEnableVertexAttribArray(0)
-        # Normalne
+        # Normals
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * vertices.itemsize, ctypes.c_void_p(3 * vertices.itemsize))
         glEnableVertexAttribArray(1)
 
@@ -108,7 +108,7 @@ class MyGLWidget(QOpenGLWidget):
 
 
     def loadModel(self, vertices_np):
-        self.makeCurrent()  # AKTYWUJ kontekst OpenGL!
+        self.makeCurrent()  # activate OpenGL context
 
 
         vao = glGenVertexArrays(1)
@@ -127,14 +127,14 @@ class MyGLWidget(QOpenGLWidget):
         glBindVertexArray(0)
 
 
-        #  ZAPISZ do listy, żeby rysować w paintGL
+        # save to list to draw in paintGL
         self.additional_vaos.append(vao)
         self.additional_vbos.append(vbo)
         self.additional_vertex_counts.append(len(vertices_np) // 6)
 
 
 
-        self.doneCurrent()  # zwolnij kontekst
+        self.doneCurrent()  # free context
         self.update()
 
 
@@ -274,14 +274,14 @@ class MainWindow(QWidget):
         self.editor_layout.addWidget(self.helper_parameters_object, stretch=12)
         self.editor_layout.addWidget(self.helper_parameters_frame, stretch=12)
         
-        #prepare animation section
+        # prepare animation section
         self.helper_animation_header = QWidget()
         self.helper_animation_header.setStyleSheet("border: 2px solid black;")
         self.helper_animation_frames = QWidget()
         self.helper_animation_frames.setStyleSheet("border: 2px solid black;")
         self.animation_header = QHBoxLayout()
         self.animation_frames = QHBoxLayout()
-        #header
+        # header
         self.animation_label = QLabel("Animation")
         self.add_frame = QPushButton("+")
         self.delete_frame = QPushButton("X")
@@ -293,15 +293,15 @@ class MainWindow(QWidget):
         self.animation_header.addWidget(self.frame_number)
         self.animation_header.addWidget(self.download)
         self.helper_animation_header.setLayout(self.animation_header)
-        #frames 
+        # frames 
         for i in range(40):
             self.animation_frames.addWidget(QPushButton(""))
         self.helper_animation_frames.setLayout(self.animation_frames)
-        #add to animation layout
+        # add to animation layout
         self.animation_layout.addWidget(self.helper_animation_header)
         self.animation_layout.addWidget(self.helper_animation_frames)
 
-        #put layouts inside one another
+        # put layouts inside one another
         self.objects_gl_editor_layout.addLayout(self.objects_layout, stretch=2)
         self.objects_gl_editor_layout.addWidget(self.gl_widget, stretch=5)
         self.objects_gl_editor_layout.addLayout(self.editor_layout, stretch=2)
@@ -316,27 +316,27 @@ class MainWindow(QWidget):
 
 
     def load_model(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, "Wybierz plik OBJ", "", "OBJ Files (*.obj)")
+        file_path, _ = QFileDialog.getOpenFileName(self, "Choose OBJ file", "", "OBJ Files (*.obj)")
         if not file_path:
-            return  # użytkownik anulował wybór
+            return  # user canceled action
 
         try:
             vertices_list, faces  = load_obj(file_path)
             if not vertices_list or not faces:
                 raise ValueError("Nie znaleziono poprawnych danych w pliku.")
 
-            # Oblicz normalne i przygotuj dane w formacie: [x, y, z, nx, ny, nz]
+            # Calculate normals and prepare data in the format: [x, y, z, nx, ny, nz]
             vertex_data = []
             for face in faces:
                 v0 = np.array(vertices_list[face[0]])
                 v1 = np.array(vertices_list[face[1]])
                 v2 = np.array(vertices_list[face[2]])
 
-                # normalna dla trójkąta
+                # normal for triangle
                 normal = np.cross(v1 - v0, v2 - v0)
                 normal = normal / np.linalg.norm(normal) if np.linalg.norm(normal) > 0 else np.array([0.0, 0.0, 1.0])
 
-                for idx in face[:3]:  # zakładamy trójkąty
+                for idx in face[:3]:  # triangles are assumed
                     pos = vertices_list[idx]
                     vertex_data.extend([*pos, *normal])
 
