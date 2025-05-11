@@ -48,8 +48,7 @@ from OpenGL.GL import (
 )
 import numpy as np
 
-# from OpenGL.GLU import *
-from utils.cube import generate_cube
+
 from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
 import sys
@@ -90,7 +89,6 @@ class MyGLWidget(QOpenGLWidget):
         glEnable(GL_DEPTH_TEST)
         # glEnable(GL_CULL_FACE)
         self.initShaders()
-        self.initCube()
 
     def resizeGL(self, w, h):
         glViewport(0, 0, w, h)
@@ -133,8 +131,7 @@ class MyGLWidget(QOpenGLWidget):
         # self.shader_program.setUniformValue("viewPos", 0.0, 3.0, 5.0)
         # self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
         # self.shader_program.setUniformValue("lightColor", self.light_color)
-        glBindVertexArray(self.vao)
-        glDrawArrays(GL_TRIANGLES, 0, 36)
+
         # glBindVertexArray(0)
 
         for vao, count, visible in zip(
@@ -271,34 +268,6 @@ class MyGLWidget(QOpenGLWidget):
             print("Błąd linkowania shaderów")
             print(self.shader_program.log())
 
-    def initCube(self):
-        vertices = generate_cube()  # use function that generates the cube
-
-        self.vao = glGenVertexArrays(1)
-        glBindVertexArray(self.vao)
-
-        self.vbo = glGenBuffers(1)
-        glBindBuffer(GL_ARRAY_BUFFER, self.vbo)
-        glBufferData(GL_ARRAY_BUFFER, vertices.nbytes, vertices, GL_STATIC_DRAW)
-
-        # Pozycje
-        glVertexAttribPointer(
-            0, 3, GL_FLOAT, GL_FALSE, 6 * vertices.itemsize, ctypes.c_void_p(0)
-        )
-        glEnableVertexAttribArray(0)
-        # Normalne
-        glVertexAttribPointer(
-            1,
-            3,
-            GL_FLOAT,
-            GL_FALSE,
-            6 * vertices.itemsize,
-            ctypes.c_void_p(3 * vertices.itemsize),
-        )
-        glEnableVertexAttribArray(1)
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0)
-        glBindVertexArray(0)
 
     def loadModel(self, vertices_np):
         self.makeCurrent()  # activate OpenGL context
