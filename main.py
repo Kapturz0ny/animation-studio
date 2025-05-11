@@ -114,7 +114,7 @@ class MyGLWidget(QOpenGLWidget):
         self.shader_program.setUniformValue("view", view)
         self.shader_program.setUniformValue("projection", projection)
 
-        self.shader_program.setUniformValue("lightPos", 5.0, 5.0, 5.0)
+        self.shader_program.setUniformValue("light_position", 5.0, 5.0, 5.0)
         self.shader_program.setUniformValue(
             "viewPos",
             self.camera.position.x(),
@@ -269,6 +269,7 @@ class MyGLWidget(QOpenGLWidget):
 
         if not self.shader_program.link():
             print("Błąd linkowania shaderów")
+            print(self.shader_program.log())
 
     def initCube(self):
         vertices = generate_cube()  # use function that generates the cube
