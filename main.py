@@ -120,7 +120,9 @@ class MyGLWidget(QOpenGLWidget):
             self.camera.position.z(),
         )
         self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
-        self.shader_program.setUniformValue("lightColor", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("light_ambient", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("light_diffuse", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("light_shininess", 1.0, 1.0, 1.0)
 
         self.shader_program.setUniformValue("material_ambient", 0.2, 0.2, 0.2)
         self.shader_program.setUniformValue("material_diffuse", 1.0, 1.0, 1.0)
