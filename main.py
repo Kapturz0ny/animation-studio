@@ -307,18 +307,18 @@ class MyGLWidget(QOpenGLWidget):
         self.update()
 
     def delete_model(self, index):
-        if 0 <= index < len(self.additional_vaos):
-            self.makeCurrent()
-            glDeleteVertexArrays(1, [self.additional_vaos[index]])
-            glDeleteBuffers(1, [self.additional_vbos[index]])
-            self.doneCurrent()
+        self.makeCurrent()
+        glDeleteVertexArrays(1, [self.additional_vaos[index]])
+        glDeleteBuffers(1, [self.additional_vbos[index]])
+        self.doneCurrent()
 
-            del self.additional_vaos[index]
-            del self.additional_vbos[index]
-            del self.additional_vertex_counts[index]
-            del self.additional_visible_flags[index]
+        del self.additional_vaos[index]
+        del self.additional_vbos[index]
+        del self.additional_vertex_counts[index]
+        del self.additional_visible_flags[index]
 
-            self.update()
+        self.update()
+
 
     def change_background_color(self, r, g, b):
         self.color = [r, g, b]
@@ -329,7 +329,6 @@ class FigureItem(QWidget):
     def __init__(self, name, index, gl_widget, parent_layout):
         super().__init__()
         self.name = name
-        self.index = index
         self.gl_widget = gl_widget
         self.parent_layout = parent_layout
 
@@ -367,11 +366,16 @@ class FigureItem(QWidget):
             self.toggle_button.setText("")  # figure invisible
 
     def delete_self(self):
-        self.gl_widget.delete_model(self.index)
+        try:
+            index = self.parent_layout.indexOf(self)
+            if index != -1:
+                self.gl_widget.delete_model(index)
+        except Exception as e:
+            print(f"Delete error: {e}")
+        
         self.setParent(None)
         self.parent_layout.removeWidget(self)
         self.deleteLater()
-
 
 class MainWindow(QWidget):
     def __init__(self):
