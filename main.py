@@ -53,7 +53,8 @@ from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
 import sys
 import ctypes
-
+from utils.frame import Frame
+from typing import Optional
 
 phong_vert = "shaders/phong.vert"
 phong_frag = "shaders/phong.frag"
@@ -328,11 +329,18 @@ class MyGLWidget(QOpenGLWidget):
 
 
 class FigureItem(QWidget):
-    def __init__(self, name, index, gl_widget, parent_layout):
+    def __init__(self, name, gl_widget, parent_layout, centroid, size_x, size_y, size_z):
         super().__init__()
         self.name = name
         self.gl_widget = gl_widget
         self.parent_layout = parent_layout
+        self.centroid = centroid
+        self.size_x = size_x
+        self.size_y = size_y
+        self.size_z = size_z
+        self.rotation_x = 0
+        self.rotation_y = 0
+        self.rotation_z = 0
 
         layout = QHBoxLayout()
         self.label = QLabel(name)
@@ -354,6 +362,9 @@ class FigureItem(QWidget):
         layout.addWidget(self.delete_button)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
+    
+    def clone(self):
+        return FigureItem(self.name, self.gl_widget, self.parent_layout, self.centroid, self.size_x, self.size_y, self.size_z)
 
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
@@ -513,7 +524,7 @@ class MainWindow(QWidget):
         self.helper_parameters_frame = QWidget()
         self.helper_parameters_frame.setStyleSheet("border: 2px solid black;")
         self.parameters_frame_area = QVBoxLayout()
-        self.param_frame_number = QLabel("Frame not chosen", self)
+        self.param_frame_number = QLabel("Object in frame not chosen", self)
         self.parameters_frame_area.addWidget(self.param_frame_number)
         self.helper_parameters_frame.setLayout(self.parameters_frame_area)
         # add to editor layout
@@ -530,12 +541,13 @@ class MainWindow(QWidget):
 
         # header
         self.animation_label = QLabel("Animation")
-        self.add_frame = QPushButton("+")
+        self.add_frame_btn = QPushButton("+")
+        self.add_frame_btn.clicked.connect(self.add_frame)
         self.delete_frame = QPushButton("X")
         self.frame_number = QLabel("Frame #")
         self.download = QPushButton("Download film")
         self.animation_header_layout.addWidget(self.animation_label)
-        self.animation_header_layout.addWidget(self.add_frame)
+        self.animation_header_layout.addWidget(self.add_frame_btn)
         self.animation_header_layout.addWidget(self.delete_frame)
         self.animation_header_layout.addWidget(self.frame_number)
         self.animation_header_layout.addWidget(self.download)
@@ -557,10 +569,12 @@ class MainWindow(QWidget):
         self.animation_frames_layout_internal.setContentsMargins(0, 0, 0, 0)
         self.animation_frames_layout_internal.setSpacing(2)
 
-        for i in range(40):
+        for i in range(100):
             btn = QPushButton(f"{i+1}")
             btn.setFixedSize(40, 40)
+            btn.clicked.connect(lambda checked=False, n=i+1: self.frame_chosen(n))
             self.animation_frames_layout_internal.addWidget(btn)
+        self.frames: list[Optional[Frame]] = [None] * 100 #Frame objects will be stored here
 
         self.animation_frames_scroll_area.setWidget(self.animation_frames_container)
 
@@ -582,6 +596,38 @@ class MainWindow(QWidget):
 
         self.setLayout(self.everything_layout)
         self.resize(1200, 800)
+
+    def add_frame(self):
+        chosen_frame_text = self.frame_number.text()
+        find_hash = chosen_frame_text.find('#')
+        chosen_frame_number_str = chosen_frame_text[find_hash+1:]
+        if(chosen_frame_number_str != ""):
+            chosen_frame_number = int(chosen_frame_number_str)
+            if(self.frames[chosen_frame_number-1] is None): # we do nothing if there is already frame inside
+                # if there are no frames before it, take the figures and lights stored in window
+                # else take the figures and lights stored in
+                frame_index = chosen_frame_number-1
+                frame_before = None
+                while frame_index >=0:
+                    if(self.frames[frame_index] is not None):
+                        frame_before = self.frames[frame_index]
+                        break
+                    frame_index -= 1
+                if(frame_before is None):
+                    figure_items = self.get_figure_items_copies()
+                else:
+                    figure_items = frame_before.get_figure_items_copies()
+                # TODO światła
+                self.frames[chosen_frame_number-1] = Frame(chosen_frame_number, figures=figure_items)
+                # pokoloruj klatkę jeśli jest pełna
+                button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
+                button.setStyleSheet("background-color: black; color: white;")
+
+
+                
+
+    def frame_chosen(self, number):
+        self.frame_number.setText(f'Frame #{number}')
 
     def reset_camera_view(self):
         self.gl_widget.camera.reset_state()
@@ -625,17 +671,48 @@ class MainWindow(QWidget):
             # Add figure name to scrollbox:
             file_name = file_path.split("/")[-1]
             index = len(self.gl_widget.additional_vaos) - 1  # Ostatni dodany
-            figure_item = FigureItem(file_name, index, self.gl_widget, self.figure_box)
+
+            centroid, size_x, size_y, size_z = get_model_parameters(vertices_list)
+            figure_item = FigureItem(file_name, self.gl_widget, self.figure_box, centroid, size_x, size_y, size_z)
+            for frame in self.frames:
+                if frame is not None:
+                    frame.add_figure(figure_item.clone())
             self.figure_box.addWidget(figure_item)
 
         except Exception as e:
             QMessageBox.critical(
                 self, "Błąd", f"Nie udało się wczytać modelu:\n{str(e)}"
             )
+        
 
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
+    
+    def get_figure_items_copies(self):
+        figure_list = []
+        for i in range(self.figure_box.count()):
+            figure = self.figure_box.itemAt(i)
+            figure_widget = figure.widget()
+            if isinstance(figure_widget, FigureItem):
+                figure_list.append(figure_widget.clone())
+        return figure_list
 
+def get_model_parameters(vertices):
+    min_x = min(vertex[0] for vertex in vertices)
+    max_x = max(vertex[0] for vertex in vertices)
+    min_y = min(vertex[1] for vertex in vertices)
+    max_y = max(vertex[1] for vertex in vertices)
+    min_z = min(vertex[2] for vertex in vertices)
+    max_z = max(vertex[2] for vertex in vertices)
+    center = (
+        (min_x + max_x) / 2,
+        (min_y + max_y) / 2,
+        (min_z + max_z) / 2,
+    )
+    size_x = max_x - min_x
+    size_y = max_y - min_y
+    size_z = max_z - min_z
+    return center, size_x, size_y, size_z
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
