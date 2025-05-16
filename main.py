@@ -605,28 +605,14 @@ class MainWindow(QWidget):
                         figure = self.figure_box.itemAt(i)
                         figure_widget = figure.widget()
                         if isinstance(figure_widget, FigureItem):
-                            figure_widget.params_in_frames[chosen_frame_number] = {
-                                'centroid': figure_widget.centroid,
-                                'size_x': figure_widget.size_x,
-                                'size_y': figure_widget.size_y,
-                                'size_z': figure_widget.size_z,
-                                'rot_x': 0,
-                                'rot_y': 0,
-                                'rot_z': 0}
+                            set_frame_to_figure(figure_widget, chosen_frame_number)
                 else:
                     for i in range(self.figure_box.count()):
                         figure = self.figure_box.itemAt(i)
                         figure_widget = figure.widget()
                         if isinstance(figure_widget, FigureItem):
                             params = figure_widget.params_in_frames[self.frame_numbers[this_frame_index-1]]
-                            figure_widget.params_in_frames[chosen_frame_number] = {
-                                'centroid': params['centroid'],
-                                'size_x': params['size_x'],
-                                'size_y': params['size_y'],
-                                'size_z': params['size_z'],
-                                'rot_x': params['rot_x'],
-                                'rot_y': params['rot_y'],
-                                'rot_z': params['rot_z']}
+                            set_frame_to_figure(figure_widget, chosen_frame_number, params)
                 # TODO dodawanie klatki do słowników obiektów świateł
                 # pokoloruj klatkę jeśli jest pełna
                 button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
@@ -683,6 +669,8 @@ class MainWindow(QWidget):
 
             centroid, size_x, size_y, size_z = get_model_parameters(vertices_list)
             figure_item = FigureItem(file_name, self.gl_widget, self.figure_box, centroid, size_x, size_y, size_z)
+            for frame in self.frame_numbers:
+                set_frame_to_figure(figure_item, frame)
             self.figure_box.addWidget(figure_item)
 
         except Exception as e:
@@ -710,6 +698,27 @@ def get_model_parameters(vertices):
     size_y = max_y - min_y
     size_z = max_z - min_z
     return center, size_x, size_y, size_z
+
+def set_frame_to_figure(figure_widget, chosen_frame_number, params={}):
+    if(len(params) == 0):
+        figure_widget.params_in_frames[chosen_frame_number] = {
+            'centroid': figure_widget.centroid,
+            'size_x': figure_widget.size_x,
+            'size_y': figure_widget.size_y,
+            'size_z': figure_widget.size_z,
+            'rot_x': 0,
+            'rot_y': 0,
+            'rot_z': 0}
+    else:
+        figure_widget.params_in_frames[chosen_frame_number] = {
+            'centroid': params['centroid'],
+            'size_x': params['size_x'],
+            'size_y': params['size_y'],
+            'size_z': params['size_z'],
+            'rot_x': params['rot_x'],
+            'rot_y': params['rot_y'],
+            'rot_z': params['rot_z']}
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
