@@ -53,8 +53,6 @@ from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
 import sys
 import ctypes
-from utils.frame import Frame
-from typing import Optional
 
 phong_vert = "shaders/phong.vert"
 phong_frag = "shaders/phong.frag"
@@ -338,9 +336,7 @@ class FigureItem(QWidget):
         self.size_x = size_x
         self.size_y = size_y
         self.size_z = size_z
-        self.rotation_x = 0
-        self.rotation_y = 0
-        self.rotation_z = 0
+        self.params_in_frames = {}
 
         layout = QHBoxLayout()
         self.label = QLabel(name)
@@ -363,9 +359,6 @@ class FigureItem(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
     
-    def clone(self):
-        return FigureItem(self.name, self.gl_widget, self.parent_layout, self.centroid, self.size_x, self.size_y, self.size_z)
-
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
         self.gl_widget.additional_visible_flags[self.index] = current_state
@@ -574,7 +567,7 @@ class MainWindow(QWidget):
             btn.setFixedSize(40, 40)
             btn.clicked.connect(lambda checked=False, n=i+1: self.frame_chosen(n))
             self.animation_frames_layout_internal.addWidget(btn)
-        self.frames: list[Optional[Frame]] = [None] * 100 #Frame objects will be stored here
+        self.frame_numbers = []
 
         self.animation_frames_scroll_area.setWidget(self.animation_frames_container)
 
@@ -603,22 +596,38 @@ class MainWindow(QWidget):
         chosen_frame_number_str = chosen_frame_text[find_hash+1:]
         if(chosen_frame_number_str != ""):
             chosen_frame_number = int(chosen_frame_number_str)
-            if(self.frames[chosen_frame_number-1] is None): # we do nothing if there is already frame inside
-                # if there are no frames before it, take the figures and lights stored in window
-                # else take the figures and lights stored in
-                frame_index = chosen_frame_number-1
-                frame_before = None
-                while frame_index >=0:
-                    if(self.frames[frame_index] is not None):
-                        frame_before = self.frames[frame_index]
-                        break
-                    frame_index -= 1
-                if(frame_before is None):
-                    figure_items = self.get_figure_items_copies()
+            if(not chosen_frame_number in self.frame_numbers): # we do nothing if there is already frame inside
+                self.frame_numbers.append(chosen_frame_number)
+                self.frame_numbers.sort()
+                this_frame_index = self.frame_numbers.index(chosen_frame_number)
+                if this_frame_index == 0: # no frames before
+                    for i in range(self.figure_box.count()):
+                        figure = self.figure_box.itemAt(i)
+                        figure_widget = figure.widget()
+                        if isinstance(figure_widget, FigureItem):
+                            figure_widget.params_in_frames[chosen_frame_number] = {
+                                'centroid': figure_widget.centroid,
+                                'size_x': figure_widget.size_x,
+                                'size_y': figure_widget.size_y,
+                                'size_z': figure_widget.size_z,
+                                'rot_x': 0,
+                                'rot_y': 0,
+                                'rot_z': 0}
                 else:
-                    figure_items = frame_before.get_figure_items_copies()
-                # TODO światła
-                self.frames[chosen_frame_number-1] = Frame(chosen_frame_number, figures=figure_items)
+                    for i in range(self.figure_box.count()):
+                        figure = self.figure_box.itemAt(i)
+                        figure_widget = figure.widget()
+                        if isinstance(figure_widget, FigureItem):
+                            params = figure_widget.params_in_frames[self.frame_numbers[this_frame_index-1]]
+                            figure_widget.params_in_frames[chosen_frame_number] = {
+                                'centroid': params['centroid'],
+                                'size_x': params['size_x'],
+                                'size_y': params['size_y'],
+                                'size_z': params['size_z'],
+                                'rot_x': params['rot_x'],
+                                'rot_y': params['rot_y'],
+                                'rot_z': params['rot_z']}
+                # TODO dodawanie klatki do słowników obiektów świateł
                 # pokoloruj klatkę jeśli jest pełna
                 button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
                 button.setStyleSheet("background-color: black; color: white;")
@@ -674,9 +683,6 @@ class MainWindow(QWidget):
 
             centroid, size_x, size_y, size_z = get_model_parameters(vertices_list)
             figure_item = FigureItem(file_name, self.gl_widget, self.figure_box, centroid, size_x, size_y, size_z)
-            for frame in self.frames:
-                if frame is not None:
-                    frame.add_figure(figure_item.clone())
             self.figure_box.addWidget(figure_item)
 
         except Exception as e:
@@ -687,15 +693,6 @@ class MainWindow(QWidget):
 
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
-    
-    def get_figure_items_copies(self):
-        figure_list = []
-        for i in range(self.figure_box.count()):
-            figure = self.figure_box.itemAt(i)
-            figure_widget = figure.widget()
-            if isinstance(figure_widget, FigureItem):
-                figure_list.append(figure_widget.clone())
-        return figure_list
 
 def get_model_parameters(vertices):
     min_x = min(vertex[0] for vertex in vertices)
