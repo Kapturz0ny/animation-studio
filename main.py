@@ -536,12 +536,13 @@ class MainWindow(QWidget):
         self.animation_label = QLabel("Animation")
         self.add_frame_btn = QPushButton("+")
         self.add_frame_btn.clicked.connect(self.add_frame)
-        self.delete_frame = QPushButton("X")
+        self.delete_frame_btn = QPushButton("X")
+        self.delete_frame_btn.clicked.connect(self.delete_frame)
         self.frame_number = QLabel("Frame #")
         self.download = QPushButton("Download film")
         self.animation_header_layout.addWidget(self.animation_label)
         self.animation_header_layout.addWidget(self.add_frame_btn)
-        self.animation_header_layout.addWidget(self.delete_frame)
+        self.animation_header_layout.addWidget(self.delete_frame_btn)
         self.animation_header_layout.addWidget(self.frame_number)
         self.animation_header_layout.addWidget(self.download)
         self.helper_animation_header.setLayout(self.animation_header_layout)
@@ -590,6 +591,23 @@ class MainWindow(QWidget):
         self.setLayout(self.everything_layout)
         self.resize(1200, 800)
 
+    def delete_frame(self):
+        chosen_frame_text = self.frame_number.text()
+        find_hash = chosen_frame_text.find('#')
+        chosen_frame_number_str = chosen_frame_text[find_hash+1:]
+        if(chosen_frame_number_str != ""):
+            chosen_frame_number = int(chosen_frame_number_str)
+            if(chosen_frame_number in self.frame_numbers): # we do nothing if this frame is empty
+                for i in range(self.figure_box.count()):
+                    figure = self.figure_box.itemAt(i)
+                    figure_widget = figure.widget()
+                    if isinstance(figure_widget, FigureItem):
+                        figure_widget.params_in_frames.pop(chosen_frame_number)
+                # TODO usuwanie klatki ze słowników obiektów świateł
+                self.frame_numbers.remove(chosen_frame_number)
+                button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
+                button.setStyleSheet("background-color: none;")
+
     def add_frame(self):
         chosen_frame_text = self.frame_number.text()
         find_hash = chosen_frame_text.find('#')
@@ -616,7 +634,7 @@ class MainWindow(QWidget):
                 # TODO dodawanie klatki do słowników obiektów świateł
                 # pokoloruj klatkę jeśli jest pełna
                 button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
-                button.setStyleSheet("background-color: black; color: white;")
+                button.setStyleSheet("background-color: black;")
 
 
                 
