@@ -405,7 +405,7 @@ class FigureItem(QWidget):
             self.rotation_title = QLabel("Rotation")
             self.rotation_box = QHBoxLayout()
             self.apply_btn = QPushButton("Apply")
-            #TODO apply function to button
+            self.apply_btn.clicked.connect(self.apply_changes)
             #prepare location
             self.loc_x_label = QLabel("x:")
             self.loc_x_text = QLineEdit(self)
@@ -476,8 +476,17 @@ class FigureItem(QWidget):
             section_layout.addWidget(self.apply_btn)
 
     def apply_changes(self):
-        pass
-    
+        chosen_frame_number = self.main_window.get_chosen_frame()
+        if chosen_frame_number != -1:
+           self.params_in_frames[chosen_frame_number]["centroid"] = (float(self.loc_x_text.text()), float(self.loc_y_text.text()), float(self.loc_z_text.text()))
+           self.params_in_frames[chosen_frame_number]["size_x"] = float(self.siz_x_text.text())
+           self.params_in_frames[chosen_frame_number]["size_y"] = float(self.siz_y_text.text())
+           self.params_in_frames[chosen_frame_number]["size_z"] = float(self.siz_z_text.text())
+           self.params_in_frames[chosen_frame_number]["rot_x"] = float(self.rot_x_text.text())
+           self.params_in_frames[chosen_frame_number]["rot_y"] = float(self.rot_y_text.text())
+           self.params_in_frames[chosen_frame_number]["rot_z"] = float(self.rot_z_text.text())
+
+
     def validate_inputs(self):
         valid = all(is_valid_float(edit.text()) for edit in [
         self.loc_x_text, self.loc_y_text,self.loc_z_text, 
