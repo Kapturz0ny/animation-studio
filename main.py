@@ -334,15 +334,22 @@ class FigureItem(QWidget):
         self.parent_layout = parent_layout
         self.main_window = main_window
         self.index = index
+
         self.centroid = centroid
         self.size_x = size_x
         self.size_y = size_y
         self.size_z = size_z
+        self.diffuse =  [0.0, 0.0, 0.0, 0.0]    # rozproszone odbicie swiatla
+        self.specular =  [0.0, 0.0, 0.0, 0.0]   # odbicie zwierciadlane
+
+
         self.params_in_frames = {}
 
         layout = QHBoxLayout()
         self.name_button = QPushButton(name)
-        self.name_button.clicked.connect(self.display_frame_figure)
+        self.name_button.clicked.connect(self.on_name_button_clicked)
+
+
         self.toggle_button = QPushButton("✖")
         self.toggle_button.setFixedSize(24, 24)
         self.toggle_button.setCheckable(True)
@@ -368,6 +375,21 @@ class FigureItem(QWidget):
         self.update_icon()
         self.gl_widget.update()
 
+    def on_name_button_clicked(self):
+        self.display_figure_params()
+        self.display_frame_figure()
+
+    def fill_params_for_frame_1(self):
+        self.params_in_frames[1] = {
+            'centroid': self.centroid,
+            'size_x': self.size_x,
+            'size_y': self.size_y,
+            'size_z': self.size_z,
+            'rot_x': 0.0,
+            'rot_y': 0.0,
+            'rot_z': 0.0,
+        }
+
     def update_icon(self):
         if self.toggle_button.isChecked():
             self.toggle_button.setText("✖")  # figure visible
@@ -382,11 +404,163 @@ class FigureItem(QWidget):
         except Exception as e:
             print(f"Delete error: {e}")
         clear_layout(self.main_window.parameters_frame_area)
+        clear_layout(self.main_window.parameters_object_area)
         self.main_window.param_frame_number.setText("Object in frame not chosen")
+        self.main_window.param_object_name.setText("Object not selected")
+
+
         self.main_window.parameters_frame_area.addWidget(self.main_window.param_frame_number)      
         self.setParent(None)
         self.parent_layout.removeWidget(self)
         self.deleteLater()
+        
+    def display_figure_params(self):
+        section_layout = self.main_window.parameters_object_area
+        clear_layout(section_layout)
+
+        self.main_window.param_object_name.setText(f"Parameters for {self.name}")
+
+
+        if 1 not in self.params_in_frames or not self.params_in_frames[1]:
+            self.fill_params_for_frame_1()
+
+        base_frame = self.params_in_frames.get(1, {})
+        centroid = base_frame.get("centroid", (0.0, 0.0, 0.0))
+        size_x = base_frame.get("size_x", 0.0)
+        size_y = base_frame.get("size_y", 0.0)
+        size_z = base_frame.get("size_z", 0.0)
+        rot_x = base_frame.get("rot_x", 0.0)
+        rot_y = base_frame.get("rot_y", 0.0)
+        rot_z = base_frame.get("rot_z", 0.0)
+
+        # Location
+        self.location_title = QLabel("Location")
+        self.location_box = QHBoxLayout()
+        self.loc_x_text = QLineEdit(str(centroid[0]))
+        self.loc_y_text = QLineEdit(str(centroid[1]))
+        self.loc_z_text = QLineEdit(str(centroid[2]))
+        self.location_box.addWidget(QLabel("x:"))
+        self.location_box.addWidget(self.loc_x_text)
+        self.location_box.addWidget(QLabel("y:"))
+        self.location_box.addWidget(self.loc_y_text)
+        self.location_box.addWidget(QLabel("z:"))
+        self.location_box.addWidget(self.loc_z_text)
+
+        # Size
+        self.size_title = QLabel("Size")
+        self.size_box = QHBoxLayout()
+        self.siz_x_text = QLineEdit(str(size_x))
+        self.siz_y_text = QLineEdit(str(size_y))
+        self.siz_z_text = QLineEdit(str(size_z))
+        self.size_box.addWidget(QLabel("x:"))
+        self.size_box.addWidget(self.siz_x_text)
+        self.size_box.addWidget(QLabel("y:"))
+        self.size_box.addWidget(self.siz_y_text)
+        self.size_box.addWidget(QLabel("z:"))
+        self.size_box.addWidget(self.siz_z_text)
+
+        # Rotation
+        self.rotation_title = QLabel("Rotation")
+        self.rotation_box = QHBoxLayout()
+        self.rot_x_text = QLineEdit(str(rot_x))
+        self.rot_y_text = QLineEdit(str(rot_y))
+        self.rot_z_text = QLineEdit(str(rot_z))
+        self.rotation_box.addWidget(QLabel("x:"))
+        self.rotation_box.addWidget(self.rot_x_text)
+        self.rotation_box.addWidget(QLabel("y:"))
+        self.rotation_box.addWidget(self.rot_y_text)
+        self.rotation_box.addWidget(QLabel("z:"))
+        self.rotation_box.addWidget(self.rot_z_text)
+
+        # Diffuse (z atrybutu!)
+        self.diffuse_title = QLabel("Diffuse (RGBA)")
+        self.diffuse_box = QHBoxLayout()
+        self.diff_r_text = QLineEdit(str(self.diffuse[0]))
+        self.diff_g_text = QLineEdit(str(self.diffuse[1]))
+        self.diff_b_text = QLineEdit(str(self.diffuse[2]))
+        self.diff_a_text = QLineEdit(str(self.diffuse[3]))
+        self.diffuse_box.addWidget(QLabel("R:"))
+        self.diffuse_box.addWidget(self.diff_r_text)
+        self.diffuse_box.addWidget(QLabel("G:"))
+        self.diffuse_box.addWidget(self.diff_g_text)
+        self.diffuse_box.addWidget(QLabel("B:"))
+        self.diffuse_box.addWidget(self.diff_b_text)
+        self.diffuse_box.addWidget(QLabel("A:"))
+        self.diffuse_box.addWidget(self.diff_a_text)
+
+        # Specular (z atrybutu!)
+        self.specular_title = QLabel("Specular (RGBA)")
+        self.specular_box = QHBoxLayout()
+        self.spec_r_text = QLineEdit(str(self.specular[0]))
+        self.spec_g_text = QLineEdit(str(self.specular[1]))
+        self.spec_b_text = QLineEdit(str(self.specular[2]))
+        self.spec_a_text = QLineEdit(str(self.specular[3]))
+        self.specular_box.addWidget(QLabel("R:"))
+        self.specular_box.addWidget(self.spec_r_text)
+        self.specular_box.addWidget(QLabel("G:"))
+        self.specular_box.addWidget(self.spec_g_text)
+        self.specular_box.addWidget(QLabel("B:"))
+        self.specular_box.addWidget(self.spec_b_text)
+        self.specular_box.addWidget(QLabel("A:"))
+        self.specular_box.addWidget(self.spec_a_text)
+
+        # Apply button
+        self.apply_btn = QPushButton("Apply")
+        self.apply_btn.clicked.connect(self.apply_figure_params)
+
+        # Add to layout
+        section_layout.addWidget(self.location_title)
+        section_layout.addLayout(self.location_box)
+        section_layout.addWidget(self.size_title)
+        section_layout.addLayout(self.size_box)
+        section_layout.addWidget(self.rotation_title)
+        section_layout.addLayout(self.rotation_box)
+        section_layout.addWidget(self.diffuse_title)
+        section_layout.addLayout(self.diffuse_box)
+        section_layout.addWidget(self.specular_title)
+        section_layout.addLayout(self.specular_box)
+        section_layout.addWidget(self.apply_btn)
+
+
+    def apply_figure_params(self):
+        chosen_frame_number = 1  # Stały numer dla wartości bazowych (domyślnych)
+
+        # Upewnij się, że ten frame istnieje
+        if chosen_frame_number not in self.params_in_frames:
+            self.params_in_frames[chosen_frame_number] = {}
+
+        try:
+            self.params_in_frames[chosen_frame_number]["centroid"] = (
+                float(self.loc_x_text.text()),
+                float(self.loc_y_text.text()),
+                float(self.loc_z_text.text()),
+            )
+            self.params_in_frames[chosen_frame_number]["size_x"] = float(self.siz_x_text.text())
+            self.params_in_frames[chosen_frame_number]["size_y"] = float(self.siz_y_text.text())
+            self.params_in_frames[chosen_frame_number]["size_z"] = float(self.siz_z_text.text())
+            self.params_in_frames[chosen_frame_number]["rot_x"] = float(self.rot_x_text.text())
+            self.params_in_frames[chosen_frame_number]["rot_y"] = float(self.rot_y_text.text())
+            self.params_in_frames[chosen_frame_number]["rot_z"] = float(self.rot_z_text.text())
+            # Diffuse i specular zapisujemy bezpośrednio w atrybutach self
+            self.diffuse = (
+                float(self.diff_r_text.text()),
+                float(self.diff_g_text.text()),
+                float(self.diff_b_text.text()),
+                float(self.diff_a_text.text()),
+            )
+            self.specular = (
+                float(self.spec_r_text.text()),
+                float(self.spec_g_text.text()),
+                float(self.spec_b_text.text()),
+                float(self.spec_a_text.text()),
+            )
+            print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
+
+        except ValueError:
+            print("Błąd: wprowadzone wartości muszą być liczbami")
+            
+
+
 
     def display_frame_figure(self):
         chosen_frame_number = self.main_window.get_chosen_frame()
@@ -474,6 +648,7 @@ class FigureItem(QWidget):
             section_layout.addWidget(self.rotation_title)
             section_layout.addLayout(self.rotation_box)
             section_layout.addWidget(self.apply_btn)
+
 
     def apply_changes(self):
         chosen_frame_number = self.main_window.get_chosen_frame()
