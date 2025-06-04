@@ -407,8 +407,7 @@ class FigureItem(QWidget):
         clear_layout(self.main_window.parameters_object_area)
         self.main_window.param_frame_number.setText("Object in frame not chosen")
         self.main_window.param_object_name.setText("Object not selected")
-
-
+        self.main_window.parameters_object_area.addWidget(self.main_window.param_object_name)
         self.main_window.parameters_frame_area.addWidget(self.main_window.param_frame_number)      
         self.setParent(None)
         self.parent_layout.removeWidget(self)
