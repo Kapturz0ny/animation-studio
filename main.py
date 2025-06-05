@@ -535,34 +535,25 @@ class FigureItem(QWidget):
         section_layout.addWidget(self.apply_btn)
 
 
-    def apply_scale(self, scale_x, scale_y, scale_z):
-
-        # original_vertices: [x, y, z, nx, ny, nz] flat array
-        scaled_vertices = self.original_vertices.copy()
+    def apply_scale(self, scale_x, scale_y, scale_z, updated_vertices):
         # Skaluje tylko pozycje (co 6 wartości, 3 pierwsze to xyz)
-        for i in range(0, len(scaled_vertices), 6):
-            scaled_vertices[i] *= scale_x      # x
-            scaled_vertices[i+1] *= scale_y    # y
-            scaled_vertices[i+2] *= scale_z    # z
-
-        # Przekaż do OpenGL (metoda w gl_widget, która aktualizuje VAO/VBO)
-        self.current_vertices = scaled_vertices
-        self.gl_widget.updateModelVertices(self.index, scaled_vertices)
+        for i in range(0, len(updated_vertices), 6):
+            updated_vertices[i] *= scale_x      # x
+            updated_vertices[i+1] *= scale_y    # y
+            updated_vertices[i+2] *= scale_z    # z
 
 
-    def apply_location(self, centroid):
-        # Skopiuj oryginalne wierzchołki
-        translated_vertices = self.original_vertices.copy()
-
+    def apply_location(self, centroid, updated_vertices):
         # Dodaj przesunięcie do każdego wierzchołka (xyz co 6 wartości)
-        for i in range(0, len(translated_vertices), 6):
-            translated_vertices[i]   += centroid[0]  # x
-            translated_vertices[i+1] += centroid[1]  # y
-            translated_vertices[i+2] += centroid[2]  # z
+        for i in range(0, len(updated_vertices), 6):
+            updated_vertices[i]   += centroid[0]  # x
+            updated_vertices[i+1] += centroid[1]  # y
+            updated_vertices[i+2] += centroid[2]  # z
+        
 
-        # Zaktualizuj dane w OpenGL
-        self.current_vertices = translated_vertices
-        self.gl_widget.updateModelVertices(self.index, translated_vertices)
+
+
+
 
 
 
@@ -603,8 +594,14 @@ class FigureItem(QWidget):
                 float(self.spec_a_text.text()),
             )
             print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
-            self.apply_location(centroid)
-            self.apply_scale(size_x, size_y, size_z)
+
+
+            updated_vertices = self.original_vertices.copy()
+
+            self.apply_location(centroid, updated_vertices)
+            self.apply_scale(size_x, size_y, size_z, updated_vertices)
+
+            self.gl_widget.updateModelVertices(self.index, updated_vertices)
 
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
