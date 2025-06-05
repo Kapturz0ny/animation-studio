@@ -392,7 +392,8 @@ class FigureItem(QWidget):
 
     def on_name_button_clicked(self):
         self.display_figure_params()
-        self.display_frame_figure()
+        self.main_window.set_chosen_figure(self)
+        # self.display_frame_figure()
 
     def fill_params_for_frame_1(self):
         self.params_in_frames[1] = {
@@ -432,20 +433,33 @@ class FigureItem(QWidget):
         section_layout = self.main_window.parameters_object_area
         clear_layout(section_layout)
 
-        self.main_window.param_object_name.setText(f"Parameters for {self.name}")
+        chosen_frame_number = self.main_window.get_chosen_frame()
+        if chosen_frame_number == -1:
+            chosen_frame_number = 1  # jeśli nic nie wybrano, ustawiamy frame 1
+
+
+        self.main_window.param_object_name.setText(f"Parameters for {self.name} in frame #{chosen_frame_number}")
 
 
         if 1 not in self.params_in_frames or not self.params_in_frames[1]:
             self.fill_params_for_frame_1()
 
-        base_frame = self.params_in_frames.get(1, {})
-        centroid = base_frame.get("centroid", (0.0, 0.0, 0.0))
-        size_x = base_frame.get("size_x", 0.0)
-        size_y = base_frame.get("size_y", 0.0)
-        size_z = base_frame.get("size_z", 0.0)
-        rot_x = base_frame.get("rot_x", 0.0)
-        rot_y = base_frame.get("rot_y", 0.0)
-        rot_z = base_frame.get("rot_z", 0.0)
+        # Jeśli brak parametrów dla wybranego frame, użyj frame 1 jako domyślnych
+        if chosen_frame_number not in self.params_in_frames or not self.params_in_frames[chosen_frame_number]:
+            current_params = self.params_in_frames.get(1, {})
+        else:
+            current_params = self.params_in_frames[chosen_frame_number]
+        
+
+
+        centroid = current_params.get("centroid", (0.0, 0.0, 0.0))
+        size_x = current_params.get("size_x", 0.0)
+        size_y = current_params.get("size_y", 0.0)
+        size_z = current_params.get("size_z", 0.0)
+        rot_x = current_params.get("rot_x", 0.0)
+        rot_y = current_params.get("rot_y", 0.0)
+        rot_z = current_params.get("rot_z", 0.0)
+
 
         # Location
         self.location_title = QLabel("Location")
@@ -460,7 +474,7 @@ class FigureItem(QWidget):
         self.location_box.addWidget(QLabel("z:"))
         self.location_box.addWidget(self.loc_z_text)
 
-        # Size
+        # Scale
         self.size_title = QLabel("Scale")
         self.size_box = QHBoxLayout()
         self.siz_x_text = QLineEdit(str(size_x))
@@ -652,8 +666,11 @@ class FigureItem(QWidget):
 
 
     def apply_figure_params(self):
-        chosen_frame_number = 1  # Stały numer dla wartości bazowych (domyślnych)
-
+        # Pobierz aktualny wybrany frame (jeśli brak, użyj 1)
+        chosen_frame_number = self.main_window.get_chosen_frame()
+        if chosen_frame_number == -1:
+            chosen_frame_number = 1  # fallback na frame
+            
         # Upewnij się, że ten frame istnieje
         if chosen_frame_number not in self.params_in_frames:
             self.params_in_frames[chosen_frame_number] = {}
@@ -708,105 +725,6 @@ class FigureItem(QWidget):
 
 
 
-    def display_frame_figure(self):
-        chosen_frame_number = self.main_window.get_chosen_frame()
-        # work only if the frame is chosen and the frame is filled
-        if chosen_frame_number != -1 and chosen_frame_number in self.main_window.frame_numbers:
-            section_layout = self.main_window.parameters_frame_area
-            clear_layout(section_layout)
-            section_title = self.main_window.param_frame_number
-            section_title.setText(self.name + ' in Frame #' + str(chosen_frame_number))
-            section_layout.addWidget(section_title)
-            # prepare boxes
-            self.location_title = QLabel("Location")
-            self.location_box = QHBoxLayout()
-            self.size_title = QLabel("Size")
-            self.size_box = QHBoxLayout()
-            self.rotation_title = QLabel("Rotation")
-            self.rotation_box = QHBoxLayout()
-            self.apply_btn = QPushButton("Apply")
-            self.apply_btn.clicked.connect(self.apply_changes)
-            #prepare location
-            self.loc_x_label = QLabel("x:")
-            self.loc_x_text = QLineEdit(self)
-            self.loc_x_text.setText(str(self.params_in_frames[chosen_frame_number]["centroid"][0]))
-            self.loc_y_label = QLabel("y:")
-            self.loc_y_text = QLineEdit(self)
-            self.loc_y_text.setText(str(self.params_in_frames[chosen_frame_number]["centroid"][1]))
-            self.loc_z_label = QLabel("z:")
-            self.loc_z_text = QLineEdit(self)
-            self.loc_z_text.setText(str(self.params_in_frames[chosen_frame_number]["centroid"][2]))
-            self.location_box.addWidget(self.loc_x_label)
-            self.location_box.addWidget(self.loc_x_text)
-            self.location_box.addWidget(self.loc_y_label)
-            self.location_box.addWidget(self.loc_y_text)
-            self.location_box.addWidget(self.loc_z_label)
-            self.location_box.addWidget(self.loc_z_text)
-            #prepare size
-            self.siz_x_label = QLabel("x:")
-            self.siz_x_text = QLineEdit(self)
-            self.siz_x_text.setText(str(self.params_in_frames[chosen_frame_number]["size_x"]))
-            self.siz_y_label = QLabel("y:")
-            self.siz_y_text = QLineEdit(self)
-            self.siz_y_text.setText(str(self.params_in_frames[chosen_frame_number]["size_y"]))
-            self.siz_z_label = QLabel("z:")
-            self.siz_z_text = QLineEdit(self)
-            self.siz_z_text.setText(str(self.params_in_frames[chosen_frame_number]["size_z"]))
-            self.size_box.addWidget(self.siz_x_label)
-            self.size_box.addWidget(self.siz_x_text)
-            self.size_box.addWidget(self.siz_y_label)
-            self.size_box.addWidget(self.siz_y_text)
-            self.size_box.addWidget(self.siz_z_label)
-            self.size_box.addWidget(self.siz_z_text)
-            #prepare rotation
-            self.rot_x_label = QLabel("x:")
-            self.rot_x_text = QLineEdit(self)
-            self.rot_x_text.setText(str(self.params_in_frames[chosen_frame_number]["rot_x"]))
-            self.rot_y_label = QLabel("y:")
-            self.rot_y_text = QLineEdit(self)
-            self.rot_y_text.setText(str(self.params_in_frames[chosen_frame_number]["rot_y"]))
-            self.rot_z_label = QLabel("z:")
-            self.rot_z_text = QLineEdit(self)
-            self.rot_z_text.setText(str(self.params_in_frames[chosen_frame_number]["rot_z"]))
-            self.rotation_box.addWidget(self.rot_x_label)
-            self.rotation_box.addWidget(self.rot_x_text)
-            self.rotation_box.addWidget(self.rot_y_label)
-            self.rotation_box.addWidget(self.rot_y_text)
-            self.rotation_box.addWidget(self.rot_z_label)
-            self.rotation_box.addWidget(self.rot_z_text)
-
-            #connect validate changes
-            self.loc_x_text.textChanged.connect(self.validate_inputs)
-            self.loc_y_text.textChanged.connect(self.validate_inputs)
-            self.loc_z_text.textChanged.connect(self.validate_inputs)
-            self.siz_x_text.textChanged.connect(self.validate_inputs)
-            self.siz_y_text.textChanged.connect(self.validate_inputs)
-            self.siz_z_text.textChanged.connect(self.validate_inputs)
-            self.rot_x_text.textChanged.connect(self.validate_inputs)
-            self.rot_y_text.textChanged.connect(self.validate_inputs)
-            self.rot_z_text.textChanged.connect(self.validate_inputs)
-
-            #add to main layout
-            section_layout.addWidget(self.location_title)
-            section_layout.addLayout(self.location_box)
-            section_layout.addWidget(self.size_title)
-            section_layout.addLayout(self.size_box)
-            section_layout.addWidget(self.rotation_title)
-            section_layout.addLayout(self.rotation_box)
-            section_layout.addWidget(self.apply_btn)
-
-
-    def apply_changes(self):
-        chosen_frame_number = self.main_window.get_chosen_frame()
-        if chosen_frame_number != -1:
-           self.params_in_frames[chosen_frame_number]["centroid"] = (float(self.loc_x_text.text()), float(self.loc_y_text.text()), float(self.loc_z_text.text()))
-           self.params_in_frames[chosen_frame_number]["size_x"] = float(self.siz_x_text.text())
-           self.params_in_frames[chosen_frame_number]["size_y"] = float(self.siz_y_text.text())
-           self.params_in_frames[chosen_frame_number]["size_z"] = float(self.siz_z_text.text())
-           self.params_in_frames[chosen_frame_number]["rot_x"] = float(self.rot_x_text.text())
-           self.params_in_frames[chosen_frame_number]["rot_y"] = float(self.rot_y_text.text())
-           self.params_in_frames[chosen_frame_number]["rot_z"] = float(self.rot_z_text.text())
-
 
     def validate_inputs(self):
         valid = all(is_valid_float(edit.text()) for edit in [
@@ -823,6 +741,9 @@ class MainWindow(QWidget):
         # two main sections
         self.objects_gl_editor_widget = QWidget()
         self.animation_widget = QWidget()
+        self.chosen_figure_item = None  # referencja do zaznaczonej figury
+        self.chosen_frame_number = 1  # domyślnie pierwsza klatka
+
 
         # layouts
         self.everything_layout = QVBoxLayout()
@@ -1023,6 +944,19 @@ class MainWindow(QWidget):
         self.setLayout(self.everything_layout)
         self.resize(1200, 800)
 
+
+    def set_chosen_figure(self, figure_item):
+        if self.chosen_figure_item and self.chosen_figure_item != figure_item:
+            self.chosen_figure_item.name_button.setStyleSheet("")  # reset stylu
+            self.chosen_figure_item.is_selected = False
+
+        self.chosen_figure_item = figure_item
+        figure_item.is_selected = True
+        figure_item.name_button.setStyleSheet("background-color: lightblue;")
+
+        figure_item.display_figure_params()
+
+
     def delete_frame(self):
         chosen_frame_number = self.get_chosen_frame()
         if chosen_frame_number != -1:
@@ -1063,7 +997,22 @@ class MainWindow(QWidget):
                 button.setStyleSheet("background-color: black;")
 
     def frame_chosen(self, number):
+        self.chosen_frame_number = number
         self.frame_number.setText(f'Frame #{number}')
+
+        if number not in self.frame_numbers:
+            print("Ten frame nie został jeszcze dodany, więc nic nie robimy.")
+            return
+
+        print(f"CHOSEN FRAME: {number}")
+
+        if self.chosen_figure_item:
+            print(f"AKTYWNA FIGURA: {self.chosen_figure_item.name}")
+            self.chosen_figure_item.display_figure_params()
+            self.chosen_figure_item.apply_figure_params()
+        else:
+            print("Nie znaleziono zaznaczonej figury.")
+
 
     def reset_camera_view(self):
         self.gl_widget.camera.reset_state()
