@@ -307,6 +307,18 @@ class MyGLWidget(QOpenGLWidget):
 
         self.update()
 
+    def updateModelVertices(self, model_index, vertices_np):
+        self.makeCurrent()
+
+        vbo_id = self.additional_vbos[model_index]  # surowe ID
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_id)
+        glBufferData(GL_ARRAY_BUFFER, vertices_np.nbytes, vertices_np, GL_STATIC_DRAW)
+        glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+        self.doneCurrent()
+        self.update()
+
+
     def delete_model(self, index):
         self.makeCurrent()
         glDeleteVertexArrays(1, [self.additional_vaos[index]])
@@ -327,7 +339,7 @@ class MyGLWidget(QOpenGLWidget):
 
 
 class FigureItem(QWidget):
-    def __init__(self, name, gl_widget, index, parent_layout, main_window, centroid, size_x, size_y, size_z):
+    def __init__(self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np):
         super().__init__()
         self.name = name
         self.gl_widget = gl_widget
@@ -336,12 +348,14 @@ class FigureItem(QWidget):
         self.index = index
 
         self.centroid = centroid
-        self.size_x = size_x
-        self.size_y = size_y
-        self.size_z = size_z
+        self.size_x = 1.0
+        self.size_y = 1.0
+        self.size_z = 1.0
         self.diffuse =  [0.0, 0.0, 0.0, 0.0]    # rozproszone odbicie swiatla
         self.specular =  [0.0, 0.0, 0.0, 0.0]   # odbicie zwierciadlane
 
+        self.original_vertices = vertices_np
+        self.current_vertices = vertices_np.copy()
 
         self.params_in_frames = {}
 
@@ -446,7 +460,7 @@ class FigureItem(QWidget):
         self.location_box.addWidget(self.loc_z_text)
 
         # Size
-        self.size_title = QLabel("Size")
+        self.size_title = QLabel("Scale")
         self.size_box = QHBoxLayout()
         self.siz_x_text = QLineEdit(str(size_x))
         self.siz_y_text = QLineEdit(str(size_y))
@@ -521,6 +535,21 @@ class FigureItem(QWidget):
         section_layout.addWidget(self.apply_btn)
 
 
+    def apply_scale(self, scale_x, scale_y, scale_z):
+
+        # original_vertices: [x, y, z, nx, ny, nz] flat array
+        scaled_vertices = self.original_vertices.copy()
+        # Skaluje tylko pozycje (co 6 wartości, 3 pierwsze to xyz)
+        for i in range(0, len(scaled_vertices), 6):
+            scaled_vertices[i] *= scale_x      # x
+            scaled_vertices[i+1] *= scale_y    # y
+            scaled_vertices[i+2] *= scale_z    # z
+
+        # Przekaż do OpenGL (metoda w gl_widget, która aktualizuje VAO/VBO)
+        self.current_vertices = scaled_vertices
+        self.gl_widget.updateModelVertices(self.index, scaled_vertices)
+
+
     def apply_figure_params(self):
         chosen_frame_number = 1  # Stały numer dla wartości bazowych (domyślnych)
 
@@ -534,9 +563,12 @@ class FigureItem(QWidget):
                 float(self.loc_y_text.text()),
                 float(self.loc_z_text.text()),
             )
-            self.params_in_frames[chosen_frame_number]["size_x"] = float(self.siz_x_text.text())
-            self.params_in_frames[chosen_frame_number]["size_y"] = float(self.siz_y_text.text())
-            self.params_in_frames[chosen_frame_number]["size_z"] = float(self.siz_z_text.text())
+            size_x = float(self.siz_x_text.text())
+            size_y = float(self.siz_y_text.text())
+            size_z = float(self.siz_z_text.text())
+            self.params_in_frames[chosen_frame_number]["size_x"] = size_x
+            self.params_in_frames[chosen_frame_number]["size_y"] = size_y
+            self.params_in_frames[chosen_frame_number]["size_z"] = size_z
             self.params_in_frames[chosen_frame_number]["rot_x"] = float(self.rot_x_text.text())
             self.params_in_frames[chosen_frame_number]["rot_y"] = float(self.rot_y_text.text())
             self.params_in_frames[chosen_frame_number]["rot_z"] = float(self.rot_z_text.text())
@@ -554,6 +586,7 @@ class FigureItem(QWidget):
                 float(self.spec_a_text.text()),
             )
             print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
+            self.apply_scale(size_x, size_y, size_z)
 
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
@@ -962,7 +995,7 @@ class MainWindow(QWidget):
             index = len(self.gl_widget.additional_vaos) - 1  # Ostatni dodany
 
             centroid, size_x, size_y, size_z = get_model_parameters(vertices_list)
-            figure_item = FigureItem(file_name, self.gl_widget, index, self.figure_box, self, centroid, size_x, size_y, size_z)
+            figure_item = FigureItem(file_name, self.gl_widget, index, self.figure_box, self, centroid, vertices_np)
             for frame in self.frame_numbers:
                 set_frame_to_figure(figure_item, frame)
             self.figure_box.addWidget(figure_item)
