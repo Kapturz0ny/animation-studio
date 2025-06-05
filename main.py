@@ -23,12 +23,6 @@ from my_gl_widget import MyGLWidget
 from items import FigureItem, LightItem
 
 
-
-phong_vert = "shaders/phong.vert"
-phong_frag = "shaders/phong.frag"
-vert = "shaders/vertex_shader.glsl"
-frag = "shaders/fragment_shader.glsl"
-
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()

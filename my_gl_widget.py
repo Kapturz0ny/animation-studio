@@ -36,6 +36,9 @@ from PyQt5.QtGui import (
 )
 import ctypes
 
+phong_vert = "shaders/phong.vert"
+phong_frag = "shaders/phong.frag"
+
 class MyGLWidget(QOpenGLWidget):
     def __init__(self):
         super(MyGLWidget, self).__init__()
@@ -310,6 +313,13 @@ class MyGLWidget(QOpenGLWidget):
         del self.additional_visible_flags[index]
 
         self.update()
+    
+    def delete_light(self, index):
+        if 0 <= index < len(self.lights):
+            del self.lights[index]
+            self.update()
+        else:
+            print("Nieprawidłowy indeks światła do usunięcia")
 
 
     def change_background_color(self, r, g, b):
