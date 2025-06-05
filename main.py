@@ -76,6 +76,10 @@ class MyGLWidget(QOpenGLWidget):
         self.camera = Camera(
             position=QVector3D(3, 3, 5), yaw=-135.0, pitch=-30.0, zoom_fov=45.0
         )
+        self.lights = [
+            {"position": QVector3D(5, 5, 5), "ambient": QVector3D(0.2, 0.2, 0.2), "diffuse": QVector3D(0.8, 0.8, 0.8), "specular": QVector3D(1.0, 1.0, 1.0)}
+        ]
+
         self.camera_interaction_mode = False
         self.last_mouse_pos = QPoint()
         self.keys_pressed = set()
@@ -105,6 +109,8 @@ class MyGLWidget(QOpenGLWidget):
         model = QMatrix4x4()
         view = self.camera.get_view_matrix()
 
+        
+
         aspect_ratio = self.width() / max(1, self.height())
         projection = self.camera.get_projection_matrix(aspect_ratio)
 
@@ -119,22 +125,17 @@ class MyGLWidget(QOpenGLWidget):
             self.camera.position.y(),
             self.camera.position.z(),
         )
-        self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
-        self.shader_program.setUniformValue("light_ambient", 1.0, 1.0, 1.0)
-        self.shader_program.setUniformValue("light_diffuse", 1.0, 1.0, 1.0)
-        self.shader_program.setUniformValue("light_shininess", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("material_ambient", 1.0, 0.2, 0.2)
+        self.shader_program.setUniformValue("material_diffuse", 1.0, 0.2, 0.2)
+        self.shader_program.setUniformValue("material_specular", 1.0, 1.0, 1.0)
+        self.shader_program.setUniformValue("material_shininess", 32.0)        
 
-        self.shader_program.setUniformValue("material_ambient", 0.2, 0.2, 0.2)
-        self.shader_program.setUniformValue("material_diffuse", 1.0, 1.0, 1.0)
-        self.shader_program.setUniformValue("material_shininess", 32.0)
-        self.shader_program.setUniformValue("color", 1.0, 0.3, 0.3)
-        self.shader_program.setUniformValue("camera_position", self.camera.position)
-
-        # self.shader_program.setUniformValue("viewPos", 0.0, 3.0, 5.0)
-        # self.shader_program.setUniformValue("objectColor", 1.0, 0.3, 0.3)
-        # self.shader_program.setUniformValue("lightColor", self.light_color)
-
-        # glBindVertexArray(0)
+        self.shader_program.setUniformValue("numLights", len(self.lights))
+        for i, light in enumerate(self.lights):
+            self.shader_program.setUniformValue(f"lights[{i}].position", light["position"])
+            self.shader_program.setUniformValue(f"lights[{i}].ambient", light["ambient"])
+            self.shader_program.setUniformValue(f"lights[{i}].diffuse", light["diffuse"])
+            self.shader_program.setUniformValue(f"lights[{i}].specular", light["specular"])
 
         for vao, count, visible in zip(
             self.additional_vaos,
@@ -270,6 +271,12 @@ class MyGLWidget(QOpenGLWidget):
             print("Błąd linkowania shaderów")
             print(self.shader_program.log())
 
+    def add_light(self):
+        print("dodano światło")
+        self.lights.append(
+            {"position": QVector3D(-5, 5, 5), "ambient": QVector3D(0.2, 0.2, 0.2), "diffuse": QVector3D(0.8, 0.8, 0.8), "specular": QVector3D(1.0, 1.0, 1.0)},
+        )
+        self.update()
 
     def loadModel(self, vertices_np):
         self.makeCurrent()  # activate OpenGL context
@@ -801,6 +808,7 @@ class MainWindow(QWidget):
         self.lights_label = QLabel("Lights ", self)
         self.lights_label.setStyleSheet("border: none;")
         self.lights_add = QPushButton("+")
+        self.lights_add.clicked.connect(self.add_light)
         self.lights_title_row.addWidget(self.lights_label)
         self.lights_title_row.addWidget(self.lights_add)
         self.helper_lights_title.setLayout(self.lights_title_row)
@@ -1067,7 +1075,10 @@ class MainWindow(QWidget):
             QMessageBox.critical(
                 self, "Błąd", f"Nie udało się wczytać modelu:\n{str(e)}"
             )
-            
+    
+    def add_light(self):
+        self.gl_widget.add_light()
+
     def get_chosen_frame(self):
         chosen_frame_text = self.frame_number.text()
         find_hash = chosen_frame_text.find('#')
