@@ -61,7 +61,7 @@ class LightItem(QWidget):
         try:
             index = self.parent_layout.indexOf(self)
             if index != -1:
-                self.gl_widget.delete_model(index)
+                self.gl_widget.delete_light(index)
         except Exception as e:
             print(f"Delete error: {e}")
         clear_layout(self.main_window.parameters_frame_area)
@@ -569,10 +569,6 @@ class FigureItem(QWidget):
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
             
-
-
-
-
     def validate_inputs(self):
         valid = all(is_valid_float(edit.text()) for edit in [
         self.loc_x_text, self.loc_y_text,self.loc_z_text, 
