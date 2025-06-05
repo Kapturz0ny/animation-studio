@@ -85,7 +85,7 @@ class LightItem(QWidget):
         self.deleteLater()
 
     def display_figure_params(self):
-        section_layout = self.main_window.parameters_object_area
+        section_layout = self.main_window.parameters_frame_area
         clear_layout(section_layout)
 
         chosen_frame_number = self.main_window.get_chosen_frame()
