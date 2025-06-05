@@ -550,6 +550,22 @@ class FigureItem(QWidget):
         self.gl_widget.updateModelVertices(self.index, scaled_vertices)
 
 
+    def apply_location(self, centroid):
+        # Skopiuj oryginalne wierzchołki
+        translated_vertices = self.original_vertices.copy()
+
+        # Dodaj przesunięcie do każdego wierzchołka (xyz co 6 wartości)
+        for i in range(0, len(translated_vertices), 6):
+            translated_vertices[i]   += centroid[0]  # x
+            translated_vertices[i+1] += centroid[1]  # y
+            translated_vertices[i+2] += centroid[2]  # z
+
+        # Zaktualizuj dane w OpenGL
+        self.current_vertices = translated_vertices
+        self.gl_widget.updateModelVertices(self.index, translated_vertices)
+
+
+
     def apply_figure_params(self):
         chosen_frame_number = 1  # Stały numer dla wartości bazowych (domyślnych)
 
@@ -558,11 +574,12 @@ class FigureItem(QWidget):
             self.params_in_frames[chosen_frame_number] = {}
 
         try:
-            self.params_in_frames[chosen_frame_number]["centroid"] = (
+            centroid = (
                 float(self.loc_x_text.text()),
                 float(self.loc_y_text.text()),
                 float(self.loc_z_text.text()),
             )
+            self.params_in_frames[chosen_frame_number]["centroid"] = centroid
             size_x = float(self.siz_x_text.text())
             size_y = float(self.siz_y_text.text())
             size_z = float(self.siz_z_text.text())
@@ -586,6 +603,7 @@ class FigureItem(QWidget):
                 float(self.spec_a_text.text()),
             )
             print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
+            self.apply_location(centroid)
             self.apply_scale(size_x, size_y, size_z)
 
         except ValueError:
