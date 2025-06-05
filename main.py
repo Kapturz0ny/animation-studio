@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QOpenGLWidget,
     QGroupBox,
+    QInputDialog,
 )
 from PyQt5.QtGui import (
     QOpenGLShaderProgram,
@@ -20,6 +21,7 @@ from PyQt5.QtGui import (
     QMouseEvent,
     QWheelEvent,
     QKeyEvent,
+    QImage,
 )
 from PyQt5.QtCore import Qt, QPoint, QTimer
 from OpenGL.GL import (
@@ -48,12 +50,12 @@ from OpenGL.GL import (
 )
 import numpy as np
 import math
-
+import sys
+import ctypes
+import imageio.v2 as iio
 
 from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
-import sys
-import ctypes
 
 phong_vert = "shaders/phong.vert"
 phong_frag = "shaders/phong.frag"
@@ -384,6 +386,47 @@ class FigureItem(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
     
+    def get_interpolated_params(self, frame_num):
+        keyframes = sorted(self.params_in_frames.keys())
+
+        if not keyframes:
+            return {'centroid': self.centroid, 'size_x': 1.0, 'size_y': 1.0, 'size_z': 1.0, 'rot_x': 0.0, 'rot_y': 0.0, 'rot_z': 0.0}
+
+        if frame_num <= keyframes[0]:
+            return self.params_in_frames[keyframes[0]]
+        if frame_num >= keyframes[-1]:
+            return self.params_in_frames[keyframes[-1]]
+
+        prev_kf = keyframes[0]
+        next_kf = keyframes[-1]
+        for kf in keyframes:
+            if kf <= frame_num:
+                prev_kf = kf
+            if kf >= frame_num:
+                next_kf = kf
+                break
+
+        if prev_kf == next_kf:
+            return self.params_in_frames[prev_kf]
+
+        params1 = self.params_in_frames[prev_kf]
+        params2 = self.params_in_frames[next_kf]
+        
+        segment_len = float(next_kf - prev_kf)
+        t = (frame_num - prev_kf) / segment_len
+
+        interp_p = {
+            'centroid': lerp_vec(params1['centroid'], params2['centroid'], t),
+            'size_x': lerp(params1['size_x'], params2['size_x'], t),
+            'size_y': lerp(params1['size_y'], params2['size_y'], t),
+            'size_z': lerp(params1['size_z'], params2['size_z'], t),
+            'rot_x': lerp(params1['rot_x'], params2['rot_x'], t),
+            'rot_y': lerp(params1['rot_y'], params2['rot_y'], t),
+            'rot_z': lerp(params1['rot_z'], params2['rot_z'], t),
+        }
+        return interp_p
+    
+
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
         self.gl_widget.additional_visible_flags[self.index] = current_state
@@ -663,8 +706,6 @@ class FigureItem(QWidget):
             updated_vertices[i + 2] = z + centroid_z
 
 
-
-
     def apply_figure_params(self):
         # Pobierz aktualny wybrany frame (jeśli brak, użyj 1)
         chosen_frame_number = self.main_window.get_chosen_frame()
@@ -722,9 +763,6 @@ class FigureItem(QWidget):
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
             
-
-
-
 
     def validate_inputs(self):
         valid = all(is_valid_float(edit.text()) for edit in [
@@ -893,6 +931,7 @@ class MainWindow(QWidget):
         self.delete_frame_btn.clicked.connect(self.delete_frame)
         self.frame_number = QLabel("Frame #")
         self.download = QPushButton("Download film")
+        self.download.clicked.connect(self.generate_animation_movie)
         self.animation_header_layout.addWidget(self.animation_label)
         self.animation_header_layout.addWidget(self.add_frame_btn)
         self.animation_header_layout.addWidget(self.delete_frame_btn)
@@ -944,7 +983,6 @@ class MainWindow(QWidget):
         self.setLayout(self.everything_layout)
         self.resize(1200, 800)
 
-
     def set_chosen_figure(self, figure_item):
         if self.chosen_figure_item and self.chosen_figure_item != figure_item:
             self.chosen_figure_item.name_button.setStyleSheet("")  # reset stylu
@@ -974,7 +1012,7 @@ class MainWindow(QWidget):
     def add_frame(self):
         chosen_frame_number = self.get_chosen_frame()
         if chosen_frame_number != -1:
-            if(not chosen_frame_number in self.frame_numbers): # we do nothing if there is already frame inside
+            if chosen_frame_number not in self.frame_numbers: # we do nothing if there is already frame inside
                 self.frame_numbers.append(chosen_frame_number)
                 self.frame_numbers.sort()
                 this_frame_index = self.frame_numbers.index(chosen_frame_number)
@@ -1080,6 +1118,53 @@ class MainWindow(QWidget):
     def on_button_click(self):
         self.gl_widget.change_background_color(0.2, 0.0, 0.5)
 
+    def generate_animation_movie(self):
+        if len(self.frame_numbers) < 2:
+            QMessageBox.warning(self, "Animation Error", "Define at least 2 key frames.")
+            return
+
+        fps, ok = QInputDialog.getInt(self, "FPS Animation", "Define frames per second (FPS):", 30, 1, 120)
+        if not ok:
+            return
+
+        path, _ = QFileDialog.getSaveFileName(self, "Save video", "", "MP4 Files (*.mp4)")
+        if not path:
+            return
+        if not path.endswith('.mp4'):
+            path += '.mp4'
+
+        min_frame = self.frame_numbers[0]
+        max_frame = self.frame_numbers[-1]
+        
+        current_ui_frame_to_restore = self.get_chosen_frame()
+
+        try:
+            with iio.get_writer(path, fps=fps) as writer:
+                for frame_num in range(min_frame, max_frame + 1):
+                    for i in range(self.figure_box.count()):
+                        figure = self.figure_box.itemAt(i).widget()
+                        if isinstance(figure, FigureItem):
+                            params = figure.get_interpolated_params(frame_num)
+                            
+                            temp_vertices = figure.original_vertices.copy()
+                            figure.apply_scale(params['size_x'], params['size_y'], params['size_z'], temp_vertices)
+                            figure.apply_rotation(params['rot_x'], params['rot_y'], params['rot_z'], temp_vertices)
+                            figure.apply_location(params['centroid'], temp_vertices)
+
+                            self.gl_widget.updateModelVertices(figure.index, temp_vertices)
+                    
+                    self.gl_widget.update()
+                    QApplication.processEvents()
+                    frame_image = self.gl_widget.grabFramebuffer()
+                    writer.append_data(qimage_to_numpy(frame_image))
+            
+            QMessageBox.information(self, "Success", f"Video saved to: {path}")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Error occured while generating video: {e}")
+        finally:
+            self.frame_chosen(current_ui_frame_to_restore)
+
 def get_model_parameters(vertices):
     min_x = min(vertex[0] for vertex in vertices)
     max_x = max(vertex[0] for vertex in vertices)
@@ -1135,6 +1220,28 @@ def is_valid_float(text):
         return True
     except ValueError:
         return False
+    
+def lerp(v0, v1, t):
+    return v0 * (1 - t) + v1 * t
+
+def lerp_vec(v0_tuple, v1_tuple, t):
+    if not isinstance(v0_tuple, (list, tuple)) or not isinstance(v1_tuple, (list, tuple)):
+        return v0_tuple if v0_tuple is not None else v1_tuple
+    if len(v0_tuple) != len(v1_tuple):
+        return v0_tuple
+    return tuple(lerp(c0, c1, t) for c0, c1 in zip(v0_tuple, v1_tuple))
+
+def qimage_to_numpy(qimage: QImage):
+    if qimage.format() != QImage.Format_RGB888:
+        qimage = qimage.convertToFormat(QImage.Format_RGB888)
+    
+    width = qimage.width()
+    height = qimage.height()
+    
+    ptr = qimage.bits()
+    ptr.setsize(qimage.byteCount())
+    arr = np.array(ptr).reshape(height, width, 3)
+    return arr
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
