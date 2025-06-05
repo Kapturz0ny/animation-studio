@@ -272,7 +272,6 @@ class MyGLWidget(QOpenGLWidget):
             print("Błąd linkowania shaderów")
             print(self.shader_program.log())
 
-
     def loadModel(self, vertices_np):
         self.makeCurrent()  # activate OpenGL context
 
@@ -321,7 +320,6 @@ class MyGLWidget(QOpenGLWidget):
         self.doneCurrent()
         self.update()
 
-
     def delete_model(self, index):
         self.makeCurrent()
         glDeleteVertexArrays(1, [self.additional_vaos[index]])
@@ -335,14 +333,15 @@ class MyGLWidget(QOpenGLWidget):
 
         self.update()
 
-
     def change_background_color(self, r, g, b):
         self.color = [r, g, b]
         self.update()
 
 
 class FigureItem(QWidget):
-    def __init__(self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np):
+    def __init__(
+        self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np
+    ):
         super().__init__()
         self.name = name
         self.gl_widget = gl_widget
@@ -354,8 +353,8 @@ class FigureItem(QWidget):
         self.size_x = 1.0
         self.size_y = 1.0
         self.size_z = 1.0
-        self.diffuse =  [0.0, 0.0, 0.0, 0.0]    # rozproszone odbicie swiatla
-        self.specular =  [0.0, 0.0, 0.0, 0.0]   # odbicie zwierciadlane
+        self.diffuse = [0.0, 0.0, 0.0, 0.0]  # rozproszone odbicie swiatla
+        self.specular = [0.0, 0.0, 0.0, 0.0]  # odbicie zwierciadlane
 
         self.original_vertices = vertices_np
         self.current_vertices = vertices_np.copy()
@@ -365,7 +364,6 @@ class FigureItem(QWidget):
         layout = QHBoxLayout()
         self.name_button = QPushButton(name)
         self.name_button.clicked.connect(self.on_name_button_clicked)
-
 
         self.toggle_button = QPushButton("✖")
         self.toggle_button.setFixedSize(24, 24)
@@ -385,12 +383,20 @@ class FigureItem(QWidget):
         layout.addWidget(self.delete_button)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-    
+
     def get_interpolated_params(self, frame_num):
         keyframes = sorted(self.params_in_frames.keys())
 
         if not keyframes:
-            return {'centroid': self.centroid, 'size_x': 1.0, 'size_y': 1.0, 'size_z': 1.0, 'rot_x': 0.0, 'rot_y': 0.0, 'rot_z': 0.0}
+            return {
+                "centroid": self.centroid,
+                "size_x": 1.0,
+                "size_y": 1.0,
+                "size_z": 1.0,
+                "rot_x": 0.0,
+                "rot_y": 0.0,
+                "rot_z": 0.0,
+            }
 
         if frame_num <= keyframes[0]:
             return self.params_in_frames[keyframes[0]]
@@ -411,21 +417,20 @@ class FigureItem(QWidget):
 
         params1 = self.params_in_frames[prev_kf]
         params2 = self.params_in_frames[next_kf]
-        
+
         segment_len = float(next_kf - prev_kf)
         t = (frame_num - prev_kf) / segment_len
 
         interp_p = {
-            'centroid': lerp_vec(params1['centroid'], params2['centroid'], t),
-            'size_x': lerp(params1['size_x'], params2['size_x'], t),
-            'size_y': lerp(params1['size_y'], params2['size_y'], t),
-            'size_z': lerp(params1['size_z'], params2['size_z'], t),
-            'rot_x': lerp(params1['rot_x'], params2['rot_x'], t),
-            'rot_y': lerp(params1['rot_y'], params2['rot_y'], t),
-            'rot_z': lerp(params1['rot_z'], params2['rot_z'], t),
+            "centroid": lerp_vec(params1["centroid"], params2["centroid"], t),
+            "size_x": lerp(params1["size_x"], params2["size_x"], t),
+            "size_y": lerp(params1["size_y"], params2["size_y"], t),
+            "size_z": lerp(params1["size_z"], params2["size_z"], t),
+            "rot_x": lerp(params1["rot_x"], params2["rot_x"], t),
+            "rot_y": lerp(params1["rot_y"], params2["rot_y"], t),
+            "rot_z": lerp(params1["rot_z"], params2["rot_z"], t),
         }
         return interp_p
-    
 
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
@@ -440,13 +445,13 @@ class FigureItem(QWidget):
 
     def fill_params_for_frame_1(self):
         self.params_in_frames[1] = {
-            'centroid': self.centroid,
-            'size_x': self.size_x,
-            'size_y': self.size_y,
-            'size_z': self.size_z,
-            'rot_x': 0.0,
-            'rot_y': 0.0,
-            'rot_z': 0.0,
+            "centroid": self.centroid,
+            "size_x": self.size_x,
+            "size_y": self.size_y,
+            "size_z": self.size_z,
+            "rot_x": 0.0,
+            "rot_y": 0.0,
+            "rot_z": 0.0,
         }
 
     def update_icon(self):
@@ -466,12 +471,16 @@ class FigureItem(QWidget):
         clear_layout(self.main_window.parameters_object_area)
         self.main_window.param_frame_number.setText("Object in frame not chosen")
         self.main_window.param_object_name.setText("Object not selected")
-        self.main_window.parameters_object_area.addWidget(self.main_window.param_object_name)
-        self.main_window.parameters_frame_area.addWidget(self.main_window.param_frame_number)      
+        self.main_window.parameters_object_area.addWidget(
+            self.main_window.param_object_name
+        )
+        self.main_window.parameters_frame_area.addWidget(
+            self.main_window.param_frame_number
+        )
         self.setParent(None)
         self.parent_layout.removeWidget(self)
         self.deleteLater()
-        
+
     def display_figure_params(self):
         section_layout = self.main_window.parameters_object_area
         clear_layout(section_layout)
@@ -480,20 +489,21 @@ class FigureItem(QWidget):
         if chosen_frame_number == -1:
             chosen_frame_number = 1  # jeśli nic nie wybrano, ustawiamy frame 1
 
-
-        self.main_window.param_object_name.setText(f"Parameters for {self.name} in frame #{chosen_frame_number}")
-
+        self.main_window.param_object_name.setText(
+            f"Parameters for {self.name} in frame #{chosen_frame_number}"
+        )
 
         if 1 not in self.params_in_frames or not self.params_in_frames[1]:
             self.fill_params_for_frame_1()
 
         # Jeśli brak parametrów dla wybranego frame, użyj frame 1 jako domyślnych
-        if chosen_frame_number not in self.params_in_frames or not self.params_in_frames[chosen_frame_number]:
+        if (
+            chosen_frame_number not in self.params_in_frames
+            or not self.params_in_frames[chosen_frame_number]
+        ):
             current_params = self.params_in_frames.get(1, {})
         else:
             current_params = self.params_in_frames[chosen_frame_number]
-        
-
 
         centroid = current_params.get("centroid", (0.0, 0.0, 0.0))
         size_x = current_params.get("size_x", 0.0)
@@ -502,7 +512,6 @@ class FigureItem(QWidget):
         rot_x = current_params.get("rot_x", 0.0)
         rot_y = current_params.get("rot_y", 0.0)
         rot_z = current_params.get("rot_z", 0.0)
-
 
         # Location
         self.location_title = QLabel("Location")
@@ -592,9 +601,6 @@ class FigureItem(QWidget):
         section_layout.addLayout(self.specular_box)
         section_layout.addWidget(self.apply_btn)
 
-
-
-
     def apply_location(self, centroid, updated_vertices):
         # 1. Oblicz obecny centroid
         x_total, y_total, z_total = 0.0, 0.0, 0.0
@@ -619,10 +625,9 @@ class FigureItem(QWidget):
 
         # 3. Przesuń wszystkie wierzchołki
         for i in range(0, len(updated_vertices), 6):
-            updated_vertices[i]     += delta_x  # x
+            updated_vertices[i] += delta_x  # x
             updated_vertices[i + 1] += delta_y  # y
             updated_vertices[i + 2] += delta_z  # z
-
 
     def apply_scale(self, scale_x, scale_y, scale_z, updated_vertices):
         # 1. Oblicz centroid (środek figury)
@@ -642,7 +647,7 @@ class FigureItem(QWidget):
         # 2–4. Przesuń -> Skaluj -> Przesuń z powrotem
         for i in range(0, len(updated_vertices), 6):
             # Przesuń do środka
-            x = updated_vertices[i]     - centroid_x
+            x = updated_vertices[i] - centroid_x
             y = updated_vertices[i + 1] - centroid_y
             z = updated_vertices[i + 2] - centroid_z
 
@@ -652,11 +657,9 @@ class FigureItem(QWidget):
             z *= scale_z
 
             # Przesuń z powrotem
-            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i] = x + centroid_x
             updated_vertices[i + 1] = y + centroid_y
             updated_vertices[i + 2] = z + centroid_z
-
-
 
     def apply_rotation(self, rot_x, rot_y, rot_z, updated_vertices):
         # Konwersja stopnie -> radiany
@@ -681,7 +684,7 @@ class FigureItem(QWidget):
         # 2–4. Obracaj wierzchołki wokół centroidu
         for i in range(0, len(updated_vertices), 6):
             # Przesuń do układu lokalnego (centrum na 0,0,0)
-            x = updated_vertices[i]     - centroid_x
+            x = updated_vertices[i] - centroid_x
             y = updated_vertices[i + 1] - centroid_y
             z = updated_vertices[i + 2] - centroid_z
 
@@ -701,17 +704,16 @@ class FigureItem(QWidget):
             x, y = x1, y1
 
             # Cofnij przesunięcie do globalnego układu
-            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i] = x + centroid_x
             updated_vertices[i + 1] = y + centroid_y
             updated_vertices[i + 2] = z + centroid_z
-
 
     def apply_figure_params(self):
         # Pobierz aktualny wybrany frame (jeśli brak, użyj 1)
         chosen_frame_number = self.main_window.get_chosen_frame()
         if chosen_frame_number == -1:
             chosen_frame_number = 1  # fallback na frame
-            
+
         # Upewnij się, że ten frame istnieje
         if chosen_frame_number not in self.params_in_frames:
             self.params_in_frames[chosen_frame_number] = {}
@@ -751,7 +753,6 @@ class FigureItem(QWidget):
             )
             print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
 
-
             updated_vertices = self.original_vertices.copy()
 
             self.apply_location(centroid, updated_vertices)
@@ -762,14 +763,24 @@ class FigureItem(QWidget):
 
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
-            
 
     def validate_inputs(self):
-        valid = all(is_valid_float(edit.text()) for edit in [
-        self.loc_x_text, self.loc_y_text,self.loc_z_text, 
-        self.siz_x_text, self.siz_y_text, self.siz_z_text,
-        self.rot_x_text, self.rot_y_text, self.rot_z_text])
+        valid = all(
+            is_valid_float(edit.text())
+            for edit in [
+                self.loc_x_text,
+                self.loc_y_text,
+                self.loc_z_text,
+                self.siz_x_text,
+                self.siz_y_text,
+                self.siz_z_text,
+                self.rot_x_text,
+                self.rot_y_text,
+                self.rot_z_text,
+            ]
+        )
         self.apply_btn.setEnabled(valid)
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -781,7 +792,6 @@ class MainWindow(QWidget):
         self.animation_widget = QWidget()
         self.chosen_figure_item = None  # referencja do zaznaczonej figury
         self.chosen_frame_number = 1  # domyślnie pierwsza klatka
-
 
         # layouts
         self.everything_layout = QVBoxLayout()
@@ -958,7 +968,7 @@ class MainWindow(QWidget):
         for i in range(100):
             btn = QPushButton(f"{i+1}")
             btn.setFixedSize(40, 40)
-            btn.clicked.connect(lambda checked=False, n=i+1: self.frame_chosen(n))
+            btn.clicked.connect(lambda checked=False, n=i + 1: self.frame_chosen(n))
             self.animation_frames_layout_internal.addWidget(btn)
         self.frame_numbers = []
 
@@ -994,11 +1004,12 @@ class MainWindow(QWidget):
 
         figure_item.display_figure_params()
 
-
     def delete_frame(self):
         chosen_frame_number = self.get_chosen_frame()
         if chosen_frame_number != -1:
-            if(chosen_frame_number in self.frame_numbers): # we do nothing if this frame is empty
+            if (
+                chosen_frame_number in self.frame_numbers
+            ):  # we do nothing if this frame is empty
                 for i in range(self.figure_box.count()):
                     figure = self.figure_box.itemAt(i)
                     figure_widget = figure.widget()
@@ -1006,17 +1017,21 @@ class MainWindow(QWidget):
                         figure_widget.params_in_frames.pop(chosen_frame_number)
                 # TODO usuwanie klatki ze słowników obiektów świateł
                 self.frame_numbers.remove(chosen_frame_number)
-                button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
+                button = self.animation_frames_layout_internal.itemAt(
+                    chosen_frame_number - 1
+                ).widget()
                 button.setStyleSheet("background-color: none;")
 
     def add_frame(self):
         chosen_frame_number = self.get_chosen_frame()
         if chosen_frame_number != -1:
-            if chosen_frame_number not in self.frame_numbers: # we do nothing if there is already frame inside
+            if (
+                chosen_frame_number not in self.frame_numbers
+            ):  # we do nothing if there is already frame inside
                 self.frame_numbers.append(chosen_frame_number)
                 self.frame_numbers.sort()
                 this_frame_index = self.frame_numbers.index(chosen_frame_number)
-                if this_frame_index == 0: # no frames before
+                if this_frame_index == 0:  # no frames before
                     for i in range(self.figure_box.count()):
                         figure = self.figure_box.itemAt(i)
                         figure_widget = figure.widget()
@@ -1027,16 +1042,22 @@ class MainWindow(QWidget):
                         figure = self.figure_box.itemAt(i)
                         figure_widget = figure.widget()
                         if isinstance(figure_widget, FigureItem):
-                            params = figure_widget.params_in_frames[self.frame_numbers[this_frame_index-1]]
-                            set_frame_to_figure(figure_widget, chosen_frame_number, params)
+                            params = figure_widget.params_in_frames[
+                                self.frame_numbers[this_frame_index - 1]
+                            ]
+                            set_frame_to_figure(
+                                figure_widget, chosen_frame_number, params
+                            )
                 # TODO dodawanie klatki do słowników obiektów świateł
                 # pokoloruj klatkę jeśli jest pełna
-                button = self.animation_frames_layout_internal.itemAt(chosen_frame_number-1).widget()
+                button = self.animation_frames_layout_internal.itemAt(
+                    chosen_frame_number - 1
+                ).widget()
                 button.setStyleSheet("background-color: black;")
 
     def frame_chosen(self, number):
         self.chosen_frame_number = number
-        self.frame_number.setText(f'Frame #{number}')
+        self.frame_number.setText(f"Frame #{number}")
 
         if number not in self.frame_numbers:
             print("Ten frame nie został jeszcze dodany, więc nic nie robimy.")
@@ -1050,7 +1071,6 @@ class MainWindow(QWidget):
             self.chosen_figure_item.apply_figure_params()
         else:
             print("Nie znaleziono zaznaczonej figury.")
-
 
     def reset_camera_view(self):
         self.gl_widget.camera.reset_state()
@@ -1096,7 +1116,15 @@ class MainWindow(QWidget):
             index = len(self.gl_widget.additional_vaos) - 1  # Ostatni dodany
 
             centroid, size_x, size_y, size_z = get_model_parameters(vertices_list)
-            figure_item = FigureItem(file_name, self.gl_widget, index, self.figure_box, self, centroid, vertices_np)
+            figure_item = FigureItem(
+                file_name,
+                self.gl_widget,
+                index,
+                self.figure_box,
+                self,
+                centroid,
+                vertices_np,
+            )
             for frame in self.frame_numbers:
                 set_frame_to_figure(figure_item, frame)
             self.figure_box.addWidget(figure_item)
@@ -1105,12 +1133,12 @@ class MainWindow(QWidget):
             QMessageBox.critical(
                 self, "Błąd", f"Nie udało się wczytać modelu:\n{str(e)}"
             )
-            
+
     def get_chosen_frame(self):
         chosen_frame_text = self.frame_number.text()
-        find_hash = chosen_frame_text.find('#')
-        chosen_frame_number_str = chosen_frame_text[find_hash+1:]
-        if(chosen_frame_number_str != ""):
+        find_hash = chosen_frame_text.find("#")
+        chosen_frame_number_str = chosen_frame_text[find_hash + 1 :]
+        if chosen_frame_number_str != "":
             chosen_frame_number = int(chosen_frame_number_str)
             return chosen_frame_number
         return -1
@@ -1120,22 +1148,28 @@ class MainWindow(QWidget):
 
     def generate_animation_movie(self):
         if len(self.frame_numbers) < 2:
-            QMessageBox.warning(self, "Animation Error", "Define at least 2 key frames.")
+            QMessageBox.warning(
+                self, "Animation Error", "Define at least 2 key frames."
+            )
             return
 
-        fps, ok = QInputDialog.getInt(self, "FPS Animation", "Define frames per second (FPS):", 30, 1, 120)
+        fps, ok = QInputDialog.getInt(
+            self, "FPS Animation", "Define frames per second (FPS):", 30, 1, 120
+        )
         if not ok:
             return
 
-        path, _ = QFileDialog.getSaveFileName(self, "Save video", "", "MP4 Files (*.mp4)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save video", "", "MP4 Files (*.mp4)"
+        )
         if not path:
             return
-        if not path.endswith('.mp4'):
-            path += '.mp4'
+        if not path.endswith(".mp4"):
+            path += ".mp4"
 
         min_frame = self.frame_numbers[0]
         max_frame = self.frame_numbers[-1]
-        
+
         current_ui_frame_to_restore = self.get_chosen_frame()
 
         try:
@@ -1145,25 +1179,40 @@ class MainWindow(QWidget):
                         figure = self.figure_box.itemAt(i).widget()
                         if isinstance(figure, FigureItem):
                             params = figure.get_interpolated_params(frame_num)
-                            
-                            temp_vertices = figure.original_vertices.copy()
-                            figure.apply_scale(params['size_x'], params['size_y'], params['size_z'], temp_vertices)
-                            figure.apply_rotation(params['rot_x'], params['rot_y'], params['rot_z'], temp_vertices)
-                            figure.apply_location(params['centroid'], temp_vertices)
 
-                            self.gl_widget.updateModelVertices(figure.index, temp_vertices)
-                    
+                            temp_vertices = figure.original_vertices.copy()
+                            figure.apply_scale(
+                                params["size_x"],
+                                params["size_y"],
+                                params["size_z"],
+                                temp_vertices,
+                            )
+                            figure.apply_rotation(
+                                params["rot_x"],
+                                params["rot_y"],
+                                params["rot_z"],
+                                temp_vertices,
+                            )
+                            figure.apply_location(params["centroid"], temp_vertices)
+
+                            self.gl_widget.updateModelVertices(
+                                figure.index, temp_vertices
+                            )
+
                     self.gl_widget.update()
                     QApplication.processEvents()
                     frame_image = self.gl_widget.grabFramebuffer()
                     writer.append_data(qimage_to_numpy(frame_image))
-            
+
             QMessageBox.information(self, "Success", f"Video saved to: {path}")
 
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"Error occured while generating video: {e}")
+            QMessageBox.critical(
+                self, "Error", f"Error occured while generating video: {e}"
+            )
         finally:
             self.frame_chosen(current_ui_frame_to_restore)
+
 
 def get_model_parameters(vertices):
     min_x = min(vertex[0] for vertex in vertices)
@@ -1182,25 +1231,29 @@ def get_model_parameters(vertices):
     size_z = max_z - min_z
     return center, size_x, size_y, size_z
 
+
 def set_frame_to_figure(figure_widget, chosen_frame_number, params={}):
-    if(len(params) == 0):
+    if len(params) == 0:
         figure_widget.params_in_frames[chosen_frame_number] = {
-            'centroid': figure_widget.centroid,
-            'size_x': figure_widget.size_x,
-            'size_y': figure_widget.size_y,
-            'size_z': figure_widget.size_z,
-            'rot_x': 0,
-            'rot_y': 0,
-            'rot_z': 0}
+            "centroid": figure_widget.centroid,
+            "size_x": figure_widget.size_x,
+            "size_y": figure_widget.size_y,
+            "size_z": figure_widget.size_z,
+            "rot_x": 0,
+            "rot_y": 0,
+            "rot_z": 0,
+        }
     else:
         figure_widget.params_in_frames[chosen_frame_number] = {
-            'centroid': params['centroid'],
-            'size_x': params['size_x'],
-            'size_y': params['size_y'],
-            'size_z': params['size_z'],
-            'rot_x': params['rot_x'],
-            'rot_y': params['rot_y'],
-            'rot_z': params['rot_z']}
+            "centroid": params["centroid"],
+            "size_x": params["size_x"],
+            "size_y": params["size_y"],
+            "size_z": params["size_z"],
+            "rot_x": params["rot_x"],
+            "rot_y": params["rot_y"],
+            "rot_z": params["rot_z"],
+        }
+
 
 def clear_layout(layout):
     while layout.count():
@@ -1214,34 +1267,41 @@ def clear_layout(layout):
             if sub_layout is not None:
                 clear_layout(sub_layout)
 
+
 def is_valid_float(text):
     try:
         float(text)
         return True
     except ValueError:
         return False
-    
+
+
 def lerp(v0, v1, t):
     return v0 * (1 - t) + v1 * t
 
+
 def lerp_vec(v0_tuple, v1_tuple, t):
-    if not isinstance(v0_tuple, (list, tuple)) or not isinstance(v1_tuple, (list, tuple)):
+    if not isinstance(v0_tuple, (list, tuple)) or not isinstance(
+        v1_tuple, (list, tuple)
+    ):
         return v0_tuple if v0_tuple is not None else v1_tuple
     if len(v0_tuple) != len(v1_tuple):
         return v0_tuple
     return tuple(lerp(c0, c1, t) for c0, c1 in zip(v0_tuple, v1_tuple))
 
+
 def qimage_to_numpy(qimage: QImage):
     if qimage.format() != QImage.Format_RGB888:
         qimage = qimage.convertToFormat(QImage.Format_RGB888)
-    
+
     width = qimage.width()
     height = qimage.height()
-    
+
     ptr = qimage.bits()
     ptr.setsize(qimage.byteCount())
     arr = np.array(ptr).reshape(height, width, 3)
     return arr
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
