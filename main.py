@@ -47,6 +47,7 @@ from OpenGL.GL import (
     GL_TRIANGLES,
 )
 import numpy as np
+import math
 
 
 from loader.obj_loader import load_obj
@@ -551,8 +552,36 @@ class FigureItem(QWidget):
             updated_vertices[i+2] += centroid[2]  # z
         
 
+    def apply_rotation(self, rot_x, rot_y, rot_z, updated_vertices):
+        # konwersja stopnie-> radiany
+        rx = math.radians(rot_x)
+        ry = math.radians(rot_y)
+        rz = math.radians(rot_z)
 
+        for i in range(0, len(updated_vertices), 6):
+            x = updated_vertices[i]
+            y = updated_vertices[i + 1]
+            z = updated_vertices[i + 2]
 
+            # Obrót wokół osi X
+            y1 = y * math.cos(rx) - z * math.sin(rx)
+            z1 = y * math.sin(rx) + z * math.cos(rx)
+            y, z = y1, z1
+
+            # Obrót wokół osi Y
+            x1 = x * math.cos(ry) + z * math.sin(ry)
+            z1 = -x * math.sin(ry) + z * math.cos(ry)
+            x, z = x1, z1
+
+            # Obrót wokół osi Z
+            x1 = x * math.cos(rz) - y * math.sin(rz)
+            y1 = x * math.sin(rz) + y * math.cos(rz)
+            x, y = x1, y1
+
+            # Zapisz nowe współrzędne
+            updated_vertices[i]     = x
+            updated_vertices[i + 1] = y
+            updated_vertices[i + 2] = z
 
 
 
@@ -574,12 +603,16 @@ class FigureItem(QWidget):
             size_x = float(self.siz_x_text.text())
             size_y = float(self.siz_y_text.text())
             size_z = float(self.siz_z_text.text())
+            rot_x = float(self.rot_x_text.text())
+            rot_y = float(self.rot_y_text.text())
+            rot_z = float(self.rot_z_text.text())
+
             self.params_in_frames[chosen_frame_number]["size_x"] = size_x
             self.params_in_frames[chosen_frame_number]["size_y"] = size_y
             self.params_in_frames[chosen_frame_number]["size_z"] = size_z
-            self.params_in_frames[chosen_frame_number]["rot_x"] = float(self.rot_x_text.text())
-            self.params_in_frames[chosen_frame_number]["rot_y"] = float(self.rot_y_text.text())
-            self.params_in_frames[chosen_frame_number]["rot_z"] = float(self.rot_z_text.text())
+            self.params_in_frames[chosen_frame_number]["rot_x"] = rot_x
+            self.params_in_frames[chosen_frame_number]["rot_y"] = rot_y
+            self.params_in_frames[chosen_frame_number]["rot_z"] = rot_z
             # Diffuse i specular zapisujemy bezpośrednio w atrybutach self
             self.diffuse = (
                 float(self.diff_r_text.text()),
@@ -600,6 +633,7 @@ class FigureItem(QWidget):
 
             self.apply_location(centroid, updated_vertices)
             self.apply_scale(size_x, size_y, size_z, updated_vertices)
+            self.apply_rotation(rot_x, rot_y, rot_z, updated_vertices)
 
             self.gl_widget.updateModelVertices(self.index, updated_vertices)
 
