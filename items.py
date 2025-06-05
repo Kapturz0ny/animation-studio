@@ -18,6 +18,8 @@ class LightItem(QWidget):
         self.index = index
         self.light = light
 
+        self.params_in_frames = {}
+
         layout = QHBoxLayout()
         self.name_button = QPushButton(name)
         self.name_button.clicked.connect(self.on_name_button_clicked)
@@ -43,7 +45,7 @@ class LightItem(QWidget):
 
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
-        self.gl_widget.additional_visible_flags[self.index] = current_state
+        self.gl_widget.visible_lights[self.index] = current_state
         self.update_icon()
         self.gl_widget.update()
 
@@ -56,6 +58,14 @@ class LightItem(QWidget):
             self.toggle_button.setText("✖")  # figure visible
         else:
             self.toggle_button.setText("")  # figure invisible
+
+    def fill_params_for_frame_1(self):
+        self.params_in_frames[1] = {
+            'position': self.light['position'],
+            'ambient': self.light['ambient'],
+            'diffuse': self.light['diffuse'],
+            'specular': self.light['specular']
+        }
 
     def delete_self(self):
         try:
@@ -161,30 +171,30 @@ class LightItem(QWidget):
         section_layout.addLayout(self.specular_box)
         section_layout.addWidget(self.apply_btn)
 
-        def apply_light_params(self):
-            self.light["position"] = QVector3D(
-                float(self.pos_x_text.text()),
-                float(self.pos_y_text.text()),
-                float(self.pos_z_text.text())
-            )
-            self.light["ambient"] = QVector3D(
-                float(self.amb_r_text.text()),
-                float(self.amb_g_text.text()),
-                float(self.amb_b_text.text())
-            )
-            self.light["diffuse"] = QVector3D(
-                float(self.diff_r_text.text()),
-                float(self.diff_g_text.text()),
-                float(self.diff_b_text.text())
-            )
-            self.light["specular"] = QVector3D(
-                float(self.spec_r_text.text()),
-                float(self.spec_g_text.text()),
-                float(self.spec_b_text.text())
-            )
-            # Update the light in the OpenGL widget
-            self.gl_widget.lights[self.index] = self.light
-            self.gl_widget.update()
+    def apply_light_params(self):
+        self.light["position"] = QVector3D(
+            float(self.pos_x_text.text()),
+            float(self.pos_y_text.text()),
+            float(self.pos_z_text.text())
+        )
+        self.light["ambient"] = QVector3D(
+            float(self.amb_r_text.text()),
+            float(self.amb_g_text.text()),
+            float(self.amb_b_text.text())
+        )
+        self.light["diffuse"] = QVector3D(
+            float(self.diff_r_text.text()),
+            float(self.diff_g_text.text()),
+            float(self.diff_b_text.text())
+        )
+        self.light["specular"] = QVector3D(
+            float(self.spec_r_text.text()),
+            float(self.spec_g_text.text()),
+            float(self.spec_b_text.text())
+        )
+        # Update the light in the OpenGL widget
+        self.gl_widget.lights[self.index] = self.light
+        self.gl_widget.update()
 
 class FigureItem(QWidget):
     def __init__(self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np):

@@ -50,6 +50,7 @@ class MyGLWidget(QOpenGLWidget):
         self.additional_vbos = []
         self.additional_vertex_counts = []
         self.additional_visible_flags = []
+        self.visible_lights = []
 
         self.camera = Camera(
             position=QVector3D(3, 3, 5), yaw=-135.0, pitch=-30.0, zoom_fov=45.0
@@ -108,10 +109,11 @@ class MyGLWidget(QOpenGLWidget):
 
         self.shader_program.setUniformValue("numLights", len(self.lights))
         for i, light in enumerate(self.lights):
-            self.shader_program.setUniformValue(f"lights[{i}].position", light["position"])
-            self.shader_program.setUniformValue(f"lights[{i}].ambient", light["ambient"])
-            self.shader_program.setUniformValue(f"lights[{i}].diffuse", light["diffuse"])
-            self.shader_program.setUniformValue(f"lights[{i}].specular", light["specular"])
+            if self.visible_lights[i] is not False:
+                self.shader_program.setUniformValue(f"lights[{i}].position", light["position"])
+                self.shader_program.setUniformValue(f"lights[{i}].ambient", light["ambient"])
+                self.shader_program.setUniformValue(f"lights[{i}].diffuse", light["diffuse"])
+                self.shader_program.setUniformValue(f"lights[{i}].specular", light["specular"])
 
         for vao, count, visible in zip(
             self.additional_vaos,
@@ -250,6 +252,7 @@ class MyGLWidget(QOpenGLWidget):
     def add_light(self, light):
         print("dodano światło")
         self.lights.append(light)
+        self.visible_lights.append(True)  # domyślnie światło jest widoczne
         self.update()
 
     def loadModel(self, vertices_np):
