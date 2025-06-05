@@ -536,52 +536,117 @@ class FigureItem(QWidget):
         section_layout.addWidget(self.apply_btn)
 
 
-    def apply_scale(self, scale_x, scale_y, scale_z, updated_vertices):
-        # Skaluje tylko pozycje (co 6 wartości, 3 pierwsze to xyz)
-        for i in range(0, len(updated_vertices), 6):
-            updated_vertices[i] *= scale_x      # x
-            updated_vertices[i+1] *= scale_y    # y
-            updated_vertices[i+2] *= scale_z    # z
 
 
     def apply_location(self, centroid, updated_vertices):
-        # Dodaj przesunięcie do każdego wierzchołka (xyz co 6 wartości)
+        # 1. Oblicz obecny centroid
+        x_total, y_total, z_total = 0.0, 0.0, 0.0
+        count = 0
+
         for i in range(0, len(updated_vertices), 6):
-            updated_vertices[i]   += centroid[0]  # x
-            updated_vertices[i+1] += centroid[1]  # y
-            updated_vertices[i+2] += centroid[2]  # z
-        
+            x_total += updated_vertices[i]
+            y_total += updated_vertices[i + 1]
+            z_total += updated_vertices[i + 2]
+            count += 1
+
+        current_centroid = (
+            x_total / count,
+            y_total / count,
+            z_total / count,
+        )
+
+        # 2. Oblicz przesunięcie
+        delta_x = centroid[0] - current_centroid[0]
+        delta_y = centroid[1] - current_centroid[1]
+        delta_z = centroid[2] - current_centroid[2]
+
+        # 3. Przesuń wszystkie wierzchołki
+        for i in range(0, len(updated_vertices), 6):
+            updated_vertices[i]     += delta_x  # x
+            updated_vertices[i + 1] += delta_y  # y
+            updated_vertices[i + 2] += delta_z  # z
+
+
+    def apply_scale(self, scale_x, scale_y, scale_z, updated_vertices):
+        # 1. Oblicz centroid (środek figury)
+        x_total, y_total, z_total = 0.0, 0.0, 0.0
+        count = 0
+
+        for i in range(0, len(updated_vertices), 6):
+            x_total += updated_vertices[i]
+            y_total += updated_vertices[i + 1]
+            z_total += updated_vertices[i + 2]
+            count += 1
+
+        centroid_x = x_total / count
+        centroid_y = y_total / count
+        centroid_z = z_total / count
+
+        # 2–4. Przesuń -> Skaluj -> Przesuń z powrotem
+        for i in range(0, len(updated_vertices), 6):
+            # Przesuń do środka
+            x = updated_vertices[i]     - centroid_x
+            y = updated_vertices[i + 1] - centroid_y
+            z = updated_vertices[i + 2] - centroid_z
+
+            # Skaluj
+            x *= scale_x
+            y *= scale_y
+            z *= scale_z
+
+            # Przesuń z powrotem
+            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i + 1] = y + centroid_y
+            updated_vertices[i + 2] = z + centroid_z
+
+
 
     def apply_rotation(self, rot_x, rot_y, rot_z, updated_vertices):
-        # konwersja stopnie-> radiany
-        rx = math.radians(rot_x)
-        ry = math.radians(rot_y)
+        # Konwersja stopnie -> radiany
+        rx = math.radians(rot_y)
+        ry = math.radians(rot_x)
         rz = math.radians(rot_z)
 
-        for i in range(0, len(updated_vertices), 6):
-            x = updated_vertices[i]
-            y = updated_vertices[i + 1]
-            z = updated_vertices[i + 2]
+        # 1. Oblicz centroid
+        x_total, y_total, z_total = 0.0, 0.0, 0.0
+        count = 0
 
-            # Obrót wokół osi X
+        for i in range(0, len(updated_vertices), 6):
+            x_total += updated_vertices[i]
+            y_total += updated_vertices[i + 1]
+            z_total += updated_vertices[i + 2]
+            count += 1
+
+        centroid_x = x_total / count
+        centroid_y = y_total / count
+        centroid_z = z_total / count
+
+        # 2–4. Obracaj wierzchołki wokół centroidu
+        for i in range(0, len(updated_vertices), 6):
+            # Przesuń do układu lokalnego (centrum na 0,0,0)
+            x = updated_vertices[i]     - centroid_x
+            y = updated_vertices[i + 1] - centroid_y
+            z = updated_vertices[i + 2] - centroid_z
+
+            # Obrót wokół X
             y1 = y * math.cos(rx) - z * math.sin(rx)
             z1 = y * math.sin(rx) + z * math.cos(rx)
             y, z = y1, z1
 
-            # Obrót wokół osi Y
+            # Obrót wokół Y
             x1 = x * math.cos(ry) + z * math.sin(ry)
             z1 = -x * math.sin(ry) + z * math.cos(ry)
             x, z = x1, z1
 
-            # Obrót wokół osi Z
+            # Obrót wokół Z
             x1 = x * math.cos(rz) - y * math.sin(rz)
             y1 = x * math.sin(rz) + y * math.cos(rz)
             x, y = x1, y1
 
-            # Zapisz nowe współrzędne
-            updated_vertices[i]     = x
-            updated_vertices[i + 1] = y
-            updated_vertices[i + 2] = z
+            # Cofnij przesunięcie do globalnego układu
+            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i + 1] = y + centroid_y
+            updated_vertices[i + 2] = z + centroid_z
 
 
 
