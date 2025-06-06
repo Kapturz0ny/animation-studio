@@ -93,7 +93,7 @@ class LightItem(QWidget):
             chosen_frame_number = 1  # jeśli nic nie wybrano, ustawiamy frame 1
 
 
-        self.main_window.param_object_name.setText(f"Parameters for {self.name} in frame #{chosen_frame_number}")
+        self.main_window.param_frame_number.setText(f"Parameters for {self.name} in frame #{chosen_frame_number}")
 
 
         if 1 not in self.params_in_frames or not self.params_in_frames[1]:
@@ -105,10 +105,15 @@ class LightItem(QWidget):
         else:
             current_params = self.params_in_frames[chosen_frame_number]
 
-        position = current_params.get("position", (0.0, 0.0, 0.0))
-        ambient = current_params.get("ambient", (0.2, 0.2, 0.2))
-        diffuse = current_params.get("diffuse", (0.8, 0.8, 0.8))
-        specular = current_params.get("specular", (1.0, 1.0, 1.0))
+        # position = current_params.get("position", (0.0, 0.0, 0.0))
+        # ambient = current_params.get("ambient", (0.25, 0.25, 0.25))
+        # diffuse = current_params.get("diffuse", (0.75, 0.75, 0.75))
+        # specular = current_params.get("specular", (1.0, 1.0, 1.0))
+        position = self.light.get("position", QVector3D(0.0, 0.0, 0.0))
+        ambient = self.light.get("ambient", QVector3D(0.25, 0.25, 0.25))
+        diffuse = self.light.get("diffuse", QVector3D(0.75, 0.75, 0.75))
+        specular = self.light.get("specular", QVector3D(1.0, 1.0, 1.0))
+
         # Position
         self.position_title = QLabel("Position")
         self.position_box = QHBoxLayout()
