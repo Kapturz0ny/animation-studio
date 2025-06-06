@@ -369,8 +369,8 @@ class MainWindow(QWidget):
         index = len(self.gl_widget.lights)
         light = {
             "position": QVector3D(5, 5, 5), 
-            "ambient": QVector3D(0.2, 0.2, 0.2), 
-            "diffuse": QVector3D(0.8, 0.8, 0.8), 
+            "ambient": QVector3D(0.25, 0.25, 0.25), 
+            "diffuse": QVector3D(0.75, 0.75, 0.75), 
             "specular": QVector3D(1.0, 1.0, 1.0)
         }
 
