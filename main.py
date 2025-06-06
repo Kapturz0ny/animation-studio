@@ -56,6 +56,7 @@ import imageio.v2 as iio
 
 from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
+from items import LightItem
 from utils.styles import (
     pressed_button_style,
     std_border_style,
