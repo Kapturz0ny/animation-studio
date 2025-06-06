@@ -51,7 +51,7 @@ class LightItem(QWidget):
 
     def on_name_button_clicked(self):
         self.display_figure_params()
-        self.main_window.set_chosen_figure(self)
+        # self.main_window.set_chosen_figure(self)
     
     def update_icon(self):
         if self.toggle_button.isChecked():
