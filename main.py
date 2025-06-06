@@ -28,6 +28,8 @@ class MainWindow(QWidget):
         super().__init__()
         self.setWindowTitle("Program do animacji")
 
+        self.lights_ever = 0
+
         # two main sections
         self.objects_gl_editor_widget = QWidget()
         self.animation_widget = QWidget()
@@ -374,7 +376,8 @@ class MainWindow(QWidget):
             "specular": QVector3D(1.0, 1.0, 1.0)
         }
 
-        light_item = LightItem("light_"+str(index), light, self.gl_widget, index, self.lights_box, self)
+        light_item = LightItem("light_"+str(self.lights_ever), light, self.gl_widget, index, self.lights_box, self)
+        self.lights_ever += 1
         self.lights_box.addWidget(light_item)
         self.gl_widget.add_light(light)
 
