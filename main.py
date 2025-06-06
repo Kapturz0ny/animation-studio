@@ -56,6 +56,11 @@ import imageio.v2 as iio
 
 from loader.obj_loader import load_obj
 from utils.camera import Camera, Direction
+from utils.styles import (
+    pressed_button_style,
+    std_border_style,
+    camera_controls_group_style,
+)
 
 phong_vert = "shaders/phong.vert"
 phong_frag = "shaders/phong.frag"
@@ -367,8 +372,10 @@ class FigureItem(QWidget):
         layout = QHBoxLayout()
         self.name_button = QPushButton(name)
         self.name_button.clicked.connect(self.on_name_button_clicked)
+        self.name_button.setStyleSheet(pressed_button_style)
 
         self.toggle_button = QPushButton("✖")
+        self.toggle_button.setStyleSheet(pressed_button_style)
         self.toggle_button.setFixedSize(24, 24)
         self.toggle_button.setCheckable(True)
         self.toggle_button.setChecked(True)
@@ -377,6 +384,7 @@ class FigureItem(QWidget):
         self.delete_button = QPushButton("Delete")
         self.delete_button.setStyleSheet(
             "background-color: lightgray; color: black; padding: 0px; margin: 0px;"
+            + pressed_button_style
         )
         self.delete_button.setFixedSize(60, 24)
         self.delete_button.clicked.connect(self.delete_self)
@@ -591,6 +599,7 @@ class FigureItem(QWidget):
         # Apply button
         self.apply_btn = QPushButton("Apply")
         self.apply_btn.clicked.connect(self.apply_figure_params)
+        self.apply_btn.setStyleSheet(pressed_button_style)
 
         # Add to layout
         section_layout.addWidget(self.location_title)
@@ -823,7 +832,7 @@ class MainWindow(QWidget):
         # prepare object section
         # ambient row
         self.helper_ambient = QWidget()
-        self.helper_ambient.setStyleSheet("border: 2px solid black;")
+        self.helper_ambient.setStyleSheet(std_border_style)
         self.ambient_area = QHBoxLayout()
         self.ambient_label = QLabel("Ambient: ", self)
         self.ambient_label.setStyleSheet("border: none;")
@@ -833,20 +842,21 @@ class MainWindow(QWidget):
         self.helper_ambient.setLayout(self.ambient_area)
         # figures title
         self.helper_figure_title = QWidget()
-        self.helper_figure_title.setStyleSheet("border: 2px solid black;")
+        self.helper_figure_title.setStyleSheet(std_border_style)
         self.figure_title_row = QHBoxLayout()
         self.figure_label = QLabel("Figures ", self)
         self.figure_label.setStyleSheet("border: none;")
 
         self.figure_add = QPushButton("+")
         self.figure_add.clicked.connect(self.load_model)
+        self.figure_add.setStyleSheet(pressed_button_style)
 
         self.figure_title_row.addWidget(self.figure_label)
         self.figure_title_row.addWidget(self.figure_add)
         self.helper_figure_title.setLayout(self.figure_title_row)
         # figures scrollable box
         self.helper_figure_box = QWidget()
-        self.helper_figure_box.setStyleSheet("border: 2px solid black;")
+        self.helper_figure_box.setStyleSheet(std_border_style)
         self.figure_box = QVBoxLayout()
         self.figure_scroll = QScrollArea(self)
         self.figure_scroll.setVerticalScrollBarPolicy(
@@ -862,17 +872,18 @@ class MainWindow(QWidget):
 
         # lights title
         self.helper_lights_title = QWidget()
-        self.helper_lights_title.setStyleSheet("border: 2px solid black;")
+        self.helper_lights_title.setStyleSheet(std_border_style)
         self.lights_title_row = QHBoxLayout()
         self.lights_label = QLabel("Lights ", self)
         self.lights_label.setStyleSheet("border: none;")
         self.lights_add = QPushButton("+")
+        self.lights_add.setStyleSheet(pressed_button_style)
         self.lights_title_row.addWidget(self.lights_label)
         self.lights_title_row.addWidget(self.lights_add)
         self.helper_lights_title.setLayout(self.lights_title_row)
         # lights scrollable box
         self.helper_lights_box = QWidget()
-        self.helper_lights_box.setStyleSheet("border: 2px solid black;")
+        self.helper_lights_box.setStyleSheet(std_border_style)
         self.lights_box = QVBoxLayout()
         self.lights_scroll = QScrollArea(self)
         self.lights_scroll.setVerticalScrollBarPolicy(
@@ -895,21 +906,7 @@ class MainWindow(QWidget):
         # prepare editor section
         # camera section
         self.camera_controls_group = QGroupBox("Camera")
-        self.camera_controls_group.setStyleSheet(
-            """
-            QGroupBox {
-                border: 2px solid black;
-                margin-top: 12px;        
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 5px;
-                left: 10px;
-            }
-        """
-        )
-
+        self.camera_controls_group.setStyleSheet(camera_controls_group_style)
         self.camera_controls_layout = QHBoxLayout()
 
         self.move_camera_button = QPushButton("Move")
@@ -920,6 +917,7 @@ class MainWindow(QWidget):
 
         self.reset_camera_button = QPushButton("Reset")
         self.reset_camera_button.clicked.connect(self.reset_camera_view)
+        self.reset_camera_button.setStyleSheet(pressed_button_style)
 
         self.camera_controls_layout.addWidget(self.move_camera_button)
         self.camera_controls_layout.addWidget(self.reset_camera_button)
@@ -927,14 +925,14 @@ class MainWindow(QWidget):
 
         # parameters of an object
         self.helper_parameters_object = QWidget()
-        self.helper_parameters_object.setStyleSheet("border: 2px solid black;")
+        self.helper_parameters_object.setStyleSheet(std_border_style)
         self.parameters_object_area = QVBoxLayout()
         self.param_object_name = QLabel("Object not chosen", self)
         self.parameters_object_area.addWidget(self.param_object_name)
         self.helper_parameters_object.setLayout(self.parameters_object_area)
         # parameters of a frame
         self.helper_parameters_frame = QWidget()
-        self.helper_parameters_frame.setStyleSheet("border: 2px solid black;")
+        self.helper_parameters_frame.setStyleSheet(std_border_style)
         self.parameters_frame_area = QVBoxLayout()
         self.param_frame_number = QLabel("Object in frame not chosen", self)
         self.parameters_frame_area.addWidget(self.param_frame_number)
@@ -945,21 +943,24 @@ class MainWindow(QWidget):
         self.editor_layout.addWidget(self.helper_parameters_frame, stretch=12)
         # prepare animation section
         self.helper_animation_header = QWidget()
-        self.helper_animation_header.setStyleSheet("border: 2px solid black;")
+        self.helper_animation_header.setStyleSheet(std_border_style)
         self.helper_animation_frames = QWidget()
-        self.helper_animation_frames.setStyleSheet("border: 2px solid black;")
+        self.helper_animation_frames.setStyleSheet(std_border_style)
         self.animation_header_layout = QHBoxLayout()
         self.animation_frames_layout = QHBoxLayout()
 
         # header
         self.animation_label = QLabel("Animation")
         self.add_frame_btn = QPushButton("+")
+        self.add_frame_btn.setStyleSheet(pressed_button_style)
         self.add_frame_btn.clicked.connect(self.add_frame)
         self.delete_frame_btn = QPushButton("X")
         self.delete_frame_btn.clicked.connect(self.delete_frame)
+        self.delete_frame_btn.setStyleSheet(pressed_button_style)
         self.frame_number = QLabel("Frame #")
         self.download = QPushButton("Download film")
         self.download.clicked.connect(self.generate_animation_movie)
+        self.download.setStyleSheet(pressed_button_style)
         self.animation_header_layout.addWidget(self.animation_label)
         self.animation_header_layout.addWidget(self.add_frame_btn)
         self.animation_header_layout.addWidget(self.delete_frame_btn)
@@ -1026,26 +1027,27 @@ class MainWindow(QWidget):
 
     def delete_frame(self):
         chosen_frame_number = self.get_chosen_frame()
-        if chosen_frame_number != -1:
-            if (
-                chosen_frame_number in self.frame_numbers
-            ):  # we do nothing if this frame is empty
-                for i in range(self.figure_box.count()):
-                    figure = self.figure_box.itemAt(i)
-                    figure_widget = figure.widget()
-                    if isinstance(figure_widget, FigureItem):
-                        figure_widget.params_in_frames.pop(chosen_frame_number)
-                # TODO usuwanie klatki ze słowników obiektów świateł
-                self.frame_numbers.remove(chosen_frame_number)
-                button = self.animation_frames_layout_internal.itemAt(
-                    chosen_frame_number - 1
-                ).widget()
-                button.setStyleSheet("background-color: none;")
+        if chosen_frame_number == -1:
+            return
+        if (
+            chosen_frame_number in self.frame_numbers
+        ):  # we do nothing if this frame is empty
+            for i in range(self.figure_box.count()):
+                figure = self.figure_box.itemAt(i)
+                figure_widget = figure.widget()
+                if isinstance(figure_widget, FigureItem):
+                    figure_widget.params_in_frames.pop(chosen_frame_number)
+            # TODO usuwanie klatki ze słowników obiektów świateł
+            self.frame_numbers.remove(chosen_frame_number)
+            button = self.animation_frames_layout_internal.itemAt(
+                chosen_frame_number - 1
+            ).widget()
+            button.setStyleSheet("background-color: none;")
 
     def add_frame(self):
         chosen_frame_number = self.get_chosen_frame()
         if (
-            chosen_frame_number != -1 or chosen_frame_number not in self.frame_numbers
+            chosen_frame_number != -1 and chosen_frame_number not in self.frame_numbers
         ):  # we do nothing if there is already frame inside
             self.frame_numbers.append(chosen_frame_number)
             self.frame_numbers.sort()
@@ -1062,7 +1064,7 @@ class MainWindow(QWidget):
             button = self.animation_frames_layout_internal.itemAt(
                 chosen_frame_number - 1
             ).widget()
-            button.setStyleSheet("background-color: blue; color: white;")
+            button.setStyleSheet("background-color: lightblue; border: 4px solid red;")
 
     def frame_chosen(self, number):
         self.chosen_frame_number = number
@@ -1070,8 +1072,10 @@ class MainWindow(QWidget):
 
         for i, btn in enumerate(self.frame_buttons):
             is_keyframe_for_animation = (i + 1) in self.frame_numbers
-            if (i + 1) == number:
-                btn.setStyleSheet("background-color: blue; color: white;")
+            if (i + 1) == number and is_keyframe_for_animation:
+                btn.setStyleSheet("background-color: lightblue; border: 4px solid red;")
+            elif (i + 1) == number:
+                btn.setStyleSheet("border: 4px solid red;")
             elif is_keyframe_for_animation:
                 btn.setStyleSheet("background-color: lightblue;")
             else:
