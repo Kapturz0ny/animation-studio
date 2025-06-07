@@ -1214,12 +1214,12 @@ class MainWindow(QWidget):
             return
 
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save video", "", "MP4 Files (*.mp4)"
+            self, "Save video", "", "WebM Files (*.webm);"
         )
         if not path:
             return
-        if not path.endswith(".mp4"):
-            path += ".mp4"
+        if not path.endswith(".webm"):
+            path += ".webm"
 
         min_frame = self.frame_numbers[0]
         max_frame = self.frame_numbers[-1]
@@ -1227,7 +1227,7 @@ class MainWindow(QWidget):
         current_ui_frame_to_restore = self.get_chosen_frame()
 
         try:
-            with iio.get_writer(path, fps=fps) as writer:
+            with iio.get_writer(path, fps=fps, codec='vp9', macro_block_size=None) as writer:
                 for frame_num in range(min_frame, max_frame + 1):
                     for i in range(self.figure_box.count()):
                         figure = self.figure_box.itemAt(i).widget()
@@ -1343,15 +1343,15 @@ def lerp_vec(v0_tuple, v1_tuple, t):
 
 
 def qimage_to_numpy(qimage: QImage):
-    if qimage.format() != QImage.Format_RGB888:
-        qimage = qimage.convertToFormat(QImage.Format_RGB888)
+    if qimage.format() != QImage.Format_RGBA8888:
+        qimage = qimage.convertToFormat(QImage.Format_RGBA8888)
 
     width = qimage.width()
     height = qimage.height()
 
     ptr = qimage.bits()
-    ptr.setsize(qimage.byteCount())
-    arr = np.array(ptr).reshape(height, width, 3)
+    ptr.setsize(height * width * 4)  # 4 kanały: RGBA
+    arr = np.array(ptr, dtype=np.uint8).reshape((height, width, 4))
     return arr
 
 
