@@ -109,11 +109,16 @@ class MyGLWidget(QOpenGLWidget):
 
         self.shader_program.setUniformValue("numLights", len(self.lights))
         for i, light in enumerate(self.lights):
-            if light["visible"]:  # ensure light is visible
+            if light["visible"] == True:  # ensure light is visible
                 self.shader_program.setUniformValue(f"lights[{i}].position", light["position"])
                 self.shader_program.setUniformValue(f"lights[{i}].ambient", light["ambient"])
                 self.shader_program.setUniformValue(f"lights[{i}].diffuse", light["diffuse"])
                 self.shader_program.setUniformValue(f"lights[{i}].specular", light["specular"])
+            else:
+                self.shader_program.setUniformValue(f"lights[{i}].position", QVector3D(0, 0, 0))
+                self.shader_program.setUniformValue(f"lights[{i}].ambient", QVector3D(0, 0, 0))
+                self.shader_program.setUniformValue(f"lights[{i}].diffuse", QVector3D(0, 0, 0))
+                self.shader_program.setUniformValue(f"lights[{i}].specular", QVector3D(0, 0, 0))
 
         for vao, count, visible in zip(
             self.additional_vaos,
@@ -254,7 +259,7 @@ class MyGLWidget(QOpenGLWidget):
         self.lights.append(light)
         # self.visible_lights.append(True)  # domyślnie światło jest widoczne
         self.update()
-        
+
     def delete_light(self, index):
         if 0 <= index < len(self.lights):
             del self.lights[index]
