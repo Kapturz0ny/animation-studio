@@ -5,8 +5,11 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QLabel,
     QLineEdit,
+    QMessageBox,
 )
 from PyQt5.QtGui import QVector3D
+from utils.styles import pressed_button_style
+
 
 class LightItem(QWidget):
     def __init__(self, name, light, gl_widget, index, parent_layout, main_window):
@@ -202,7 +205,9 @@ class LightItem(QWidget):
         self.gl_widget.update()
 
 class FigureItem(QWidget):
-    def __init__(self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np):
+    def __init__(
+        self, name, gl_widget, index, parent_layout, main_window, centroid, vertices_np
+    ):
         super().__init__()
         self.name = name
         self.gl_widget = gl_widget
@@ -214,8 +219,11 @@ class FigureItem(QWidget):
         self.size_x = 1.0
         self.size_y = 1.0
         self.size_z = 1.0
-        self.diffuse =  [0.0, 0.0, 0.0, 0.0]    # rozproszone odbicie swiatla
-        self.specular =  [0.0, 0.0, 0.0, 0.0]   # odbicie zwierciadlane
+        self.rot_x = 0.0
+        self.rot_y = 0.0
+        self.rot_z = 0.0
+        self.diffuse = [0.0, 0.0, 0.0, 0.0]  # rozproszone odbicie swiatla
+        self.specular = [0.0, 0.0, 0.0, 0.0]  # odbicie zwierciadlane
 
         self.original_vertices = vertices_np
         self.current_vertices = vertices_np.copy()
@@ -225,9 +233,10 @@ class FigureItem(QWidget):
         layout = QHBoxLayout()
         self.name_button = QPushButton(name)
         self.name_button.clicked.connect(self.on_name_button_clicked)
-
+        self.name_button.setStyleSheet(pressed_button_style)
 
         self.toggle_button = QPushButton("✖")
+        self.toggle_button.setStyleSheet(pressed_button_style)
         self.toggle_button.setFixedSize(24, 24)
         self.toggle_button.setCheckable(True)
         self.toggle_button.setChecked(True)
@@ -236,6 +245,7 @@ class FigureItem(QWidget):
         self.delete_button = QPushButton("Delete")
         self.delete_button.setStyleSheet(
             "background-color: lightgray; color: black; padding: 0px; margin: 0px;"
+            + pressed_button_style
         )
         self.delete_button.setFixedSize(60, 24)
         self.delete_button.clicked.connect(self.delete_self)
@@ -245,7 +255,85 @@ class FigureItem(QWidget):
         layout.addWidget(self.delete_button)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
-    
+
+    def get_default_transform_params(self):
+        return {
+            "centroid": self.centroid,
+            "size_x": self.size_x,
+            "size_y": self.size_y,
+            "size_z": self.size_z,
+            "rot_x": self.rot_x,
+            "rot_y": self.rot_y,
+            "rot_z": self.rot_z,
+        }
+
+    def get_interpolated_params(self, frame_num):
+        keyframes = sorted(self.params_in_frames.keys())
+
+        if not keyframes:
+            return self.get_default_transform_params()
+
+        if frame_num <= keyframes[0]:
+            return self.params_in_frames[keyframes[0]]
+        if frame_num >= keyframes[-1]:
+            return self.params_in_frames[keyframes[-1]]
+
+        prev_kf = keyframes[0]
+        next_kf = keyframes[-1]
+        for kf in keyframes:
+            if kf <= frame_num:
+                prev_kf = kf
+            if kf >= frame_num:
+                next_kf = kf
+                break
+
+        if prev_kf == next_kf:
+            return self.params_in_frames[prev_kf]
+
+        params1 = self.params_in_frames[prev_kf]
+        params2 = self.params_in_frames[next_kf]
+
+        segment_len = float(next_kf - prev_kf)
+        t = (frame_num - prev_kf) / segment_len
+
+        interp_p = {
+            "centroid": lerp_vec(params1["centroid"], params2["centroid"], t),
+            "size_x": lerp(params1["size_x"], params2["size_x"], t),
+            "size_y": lerp(params1["size_y"], params2["size_y"], t),
+            "size_z": lerp(params1["size_z"], params2["size_z"], t),
+            "rot_x": lerp(params1["rot_x"], params2["rot_x"], t),
+            "rot_y": lerp(params1["rot_y"], params2["rot_y"], t),
+            "rot_z": lerp(params1["rot_z"], params2["rot_z"], t),
+        }
+        return interp_p
+
+    def get_params_for_ui_display(self, frame_num_in_ui):
+        figure_keyframes = sorted(
+            [
+                k
+                for k in self.params_in_frames.keys()
+                if self.params_in_frames[k] is not None
+            ]
+        )
+
+        if not figure_keyframes:
+            return self.get_default_transform_params()
+
+        if frame_num_in_ui in self.params_in_frames:
+            return self.params_in_frames[frame_num_in_ui]
+
+        if frame_num_in_ui < figure_keyframes[0]:
+            return self.params_in_frames[figure_keyframes[0]]
+
+        last_defined_kf_before_or_at_ui_frame = figure_keyframes[0]
+        for kf in figure_keyframes:
+            if kf <= frame_num_in_ui:
+                last_defined_kf_before_or_at_ui_frame = kf
+            else:
+                break
+
+        return self.params_in_frames[last_defined_kf_before_or_at_ui_frame]
+
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
         self.gl_widget.additional_visible_flags[self.index] = current_state
@@ -256,17 +344,6 @@ class FigureItem(QWidget):
         self.display_figure_params()
         self.main_window.set_chosen_figure(self)
         # self.display_frame_figure()
-
-    def fill_params_for_frame_1(self):
-        self.params_in_frames[1] = {
-            'centroid': self.centroid,
-            'size_x': self.size_x,
-            'size_y': self.size_y,
-            'size_z': self.size_z,
-            'rot_x': 0.0,
-            'rot_y': 0.0,
-            'rot_z': 0.0,
-        }
 
     def update_icon(self):
         if self.toggle_button.isChecked():
@@ -285,12 +362,16 @@ class FigureItem(QWidget):
         clear_layout(self.main_window.parameters_object_area)
         self.main_window.param_frame_number.setText("Object in frame not chosen")
         self.main_window.param_object_name.setText("Object not selected")
-        self.main_window.parameters_object_area.addWidget(self.main_window.param_object_name)
-        self.main_window.parameters_frame_area.addWidget(self.main_window.param_frame_number)      
+        self.main_window.parameters_object_area.addWidget(
+            self.main_window.param_object_name
+        )
+        self.main_window.parameters_frame_area.addWidget(
+            self.main_window.param_frame_number
+        )
         self.setParent(None)
         self.parent_layout.removeWidget(self)
         self.deleteLater()
-        
+
     def display_figure_params(self):
         section_layout = self.main_window.parameters_object_area
         clear_layout(section_layout)
@@ -299,36 +380,18 @@ class FigureItem(QWidget):
         if chosen_frame_number == -1:
             chosen_frame_number = 1  # jeśli nic nie wybrano, ustawiamy frame 1
 
+        self.main_window.param_object_name.setText(
+            f"Parameters for {self.name} in frame #{chosen_frame_number}"
+        )
 
-        self.main_window.param_object_name.setText(f"Parameters for {self.name} in frame #{chosen_frame_number}")
-
-
-        if 1 not in self.params_in_frames or not self.params_in_frames[1]:
-            self.fill_params_for_frame_1()
-
-        # Jeśli brak parametrów dla wybranego frame, użyj frame 1 jako domyślnych
-        if chosen_frame_number not in self.params_in_frames or not self.params_in_frames[chosen_frame_number]:
-            current_params = self.params_in_frames.get(1, {})
-        else:
-            current_params = self.params_in_frames[chosen_frame_number]
-        
-
-
-        centroid = current_params.get("centroid", (0.0, 0.0, 0.0))
-        size_x = current_params.get("size_x", 0.0)
-        size_y = current_params.get("size_y", 0.0)
-        size_z = current_params.get("size_z", 0.0)
-        rot_x = current_params.get("rot_x", 0.0)
-        rot_y = current_params.get("rot_y", 0.0)
-        rot_z = current_params.get("rot_z", 0.0)
-
+        params_to_show = self.get_params_for_ui_display(chosen_frame_number)
 
         # Location
         self.location_title = QLabel("Location")
         self.location_box = QHBoxLayout()
-        self.loc_x_text = QLineEdit(str(centroid[0]))
-        self.loc_y_text = QLineEdit(str(centroid[1]))
-        self.loc_z_text = QLineEdit(str(centroid[2]))
+        self.loc_x_text = QLineEdit(str(params_to_show["centroid"][0]))
+        self.loc_y_text = QLineEdit(str(params_to_show["centroid"][1]))
+        self.loc_z_text = QLineEdit(str(params_to_show["centroid"][2]))
         self.location_box.addWidget(QLabel("x:"))
         self.location_box.addWidget(self.loc_x_text)
         self.location_box.addWidget(QLabel("y:"))
@@ -339,9 +402,9 @@ class FigureItem(QWidget):
         # Scale
         self.size_title = QLabel("Scale")
         self.size_box = QHBoxLayout()
-        self.siz_x_text = QLineEdit(str(size_x))
-        self.siz_y_text = QLineEdit(str(size_y))
-        self.siz_z_text = QLineEdit(str(size_z))
+        self.siz_x_text = QLineEdit(str(params_to_show["size_x"]))
+        self.siz_y_text = QLineEdit(str(params_to_show["size_y"]))
+        self.siz_z_text = QLineEdit(str(params_to_show["size_z"]))
         self.size_box.addWidget(QLabel("x:"))
         self.size_box.addWidget(self.siz_x_text)
         self.size_box.addWidget(QLabel("y:"))
@@ -352,9 +415,9 @@ class FigureItem(QWidget):
         # Rotation
         self.rotation_title = QLabel("Rotation")
         self.rotation_box = QHBoxLayout()
-        self.rot_x_text = QLineEdit(str(rot_x))
-        self.rot_y_text = QLineEdit(str(rot_y))
-        self.rot_z_text = QLineEdit(str(rot_z))
+        self.rot_x_text = QLineEdit(str(params_to_show["rot_x"]))
+        self.rot_y_text = QLineEdit(str(params_to_show["rot_y"]))
+        self.rot_z_text = QLineEdit(str(params_to_show["rot_z"]))
         self.rotation_box.addWidget(QLabel("x:"))
         self.rotation_box.addWidget(self.rot_x_text)
         self.rotation_box.addWidget(QLabel("y:"))
@@ -397,6 +460,7 @@ class FigureItem(QWidget):
         # Apply button
         self.apply_btn = QPushButton("Apply")
         self.apply_btn.clicked.connect(self.apply_figure_params)
+        self.apply_btn.setStyleSheet(pressed_button_style)
 
         # Add to layout
         section_layout.addWidget(self.location_title)
@@ -410,9 +474,6 @@ class FigureItem(QWidget):
         section_layout.addWidget(self.specular_title)
         section_layout.addLayout(self.specular_box)
         section_layout.addWidget(self.apply_btn)
-
-
-
 
     def apply_location(self, centroid, updated_vertices):
         # 1. Oblicz obecny centroid
@@ -438,10 +499,9 @@ class FigureItem(QWidget):
 
         # 3. Przesuń wszystkie wierzchołki
         for i in range(0, len(updated_vertices), 6):
-            updated_vertices[i]     += delta_x  # x
+            updated_vertices[i] += delta_x  # x
             updated_vertices[i + 1] += delta_y  # y
             updated_vertices[i + 2] += delta_z  # z
-
 
     def apply_scale(self, scale_x, scale_y, scale_z, updated_vertices):
         # 1. Oblicz centroid (środek figury)
@@ -461,7 +521,7 @@ class FigureItem(QWidget):
         # 2–4. Przesuń -> Skaluj -> Przesuń z powrotem
         for i in range(0, len(updated_vertices), 6):
             # Przesuń do środka
-            x = updated_vertices[i]     - centroid_x
+            x = updated_vertices[i] - centroid_x
             y = updated_vertices[i + 1] - centroid_y
             z = updated_vertices[i + 2] - centroid_z
 
@@ -471,11 +531,9 @@ class FigureItem(QWidget):
             z *= scale_z
 
             # Przesuń z powrotem
-            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i] = x + centroid_x
             updated_vertices[i + 1] = y + centroid_y
             updated_vertices[i + 2] = z + centroid_z
-
-
 
     def apply_rotation(self, rot_x, rot_y, rot_z, updated_vertices):
         # Konwersja stopnie -> radiany
@@ -500,7 +558,7 @@ class FigureItem(QWidget):
         # 2–4. Obracaj wierzchołki wokół centroidu
         for i in range(0, len(updated_vertices), 6):
             # Przesuń do układu lokalnego (centrum na 0,0,0)
-            x = updated_vertices[i]     - centroid_x
+            x = updated_vertices[i] - centroid_x
             y = updated_vertices[i + 1] - centroid_y
             z = updated_vertices[i + 2] - centroid_z
 
@@ -520,22 +578,25 @@ class FigureItem(QWidget):
             x, y = x1, y1
 
             # Cofnij przesunięcie do globalnego układu
-            updated_vertices[i]     = x + centroid_x
+            updated_vertices[i] = x + centroid_x
             updated_vertices[i + 1] = y + centroid_y
             updated_vertices[i + 2] = z + centroid_z
-
-
-
 
     def apply_figure_params(self):
         # Pobierz aktualny wybrany frame (jeśli brak, użyj 1)
         chosen_frame_number = self.main_window.get_chosen_frame()
         if chosen_frame_number == -1:
             chosen_frame_number = 1  # fallback na frame
-            
+
         # Upewnij się, że ten frame istnieje
         if chosen_frame_number not in self.params_in_frames:
-            self.params_in_frames[chosen_frame_number] = {}
+            QMessageBox.warning(
+                self,
+                "Update Params Error",
+                "Cannot change object params without keyframe selected."
+                "Please create a keyframe first.",
+            )
+            return
 
         try:
             centroid = (
@@ -572,25 +633,41 @@ class FigureItem(QWidget):
             )
             print(f"Zapisano wartości podstawowe do frame #{chosen_frame_number}")
 
-
-            updated_vertices = self.original_vertices.copy()
-
-            self.apply_location(centroid, updated_vertices)
-            self.apply_scale(size_x, size_y, size_z, updated_vertices)
-            self.apply_rotation(rot_x, rot_y, rot_z, updated_vertices)
-
-            self.gl_widget.updateModelVertices(self.index, updated_vertices)
+            self.update_visual_state(chosen_frame_number)
 
         except ValueError:
             print("Błąd: wprowadzone wartości muszą być liczbami")
-            
-    def validate_inputs(self):
-        valid = all(is_valid_float(edit.text()) for edit in [
-        self.loc_x_text, self.loc_y_text,self.loc_z_text, 
-        self.siz_x_text, self.siz_y_text, self.siz_z_text,
-        self.rot_x_text, self.rot_y_text, self.rot_z_text])
-        self.apply_btn.setEnabled(valid)
 
+    def update_visual_state(self, frame_num_to_display_state_of):
+        params = self.get_params_for_ui_display(frame_num_to_display_state_of)
+
+        self.current_vertices = self.original_vertices.copy()
+        self.apply_scale(
+            params["size_x"], params["size_y"], params["size_z"], self.current_vertices
+        )
+        self.apply_rotation(
+            params["rot_x"], params["rot_y"], params["rot_z"], self.current_vertices
+        )
+        self.apply_location(params["centroid"], self.current_vertices)
+
+        self.gl_widget.updateModelVertices(self.index, self.current_vertices)
+
+    def validate_inputs(self):
+        valid = all(
+            is_valid_float(edit.text())
+            for edit in [
+                self.loc_x_text,
+                self.loc_y_text,
+                self.loc_z_text,
+                self.siz_x_text,
+                self.siz_y_text,
+                self.siz_z_text,
+                self.rot_x_text,
+                self.rot_y_text,
+                self.rot_z_text,
+            ]
+        )
+        self.apply_btn.setEnabled(valid)
 
 def clear_layout(layout):
     while layout.count():
@@ -610,3 +687,15 @@ def is_valid_float(text):
         return True
     except ValueError:
         return False
+    
+def lerp(v0, v1, t):
+    return v0 * (1 - t) + v1 * t
+
+def lerp_vec(v0_tuple, v1_tuple, t):
+    if not isinstance(v0_tuple, (list, tuple)) or not isinstance(
+        v1_tuple, (list, tuple)
+    ):
+        return v0_tuple if v0_tuple is not None else v1_tuple
+    if len(v0_tuple) != len(v1_tuple):
+        return v0_tuple
+    return tuple(lerp(c0, c1, t) for c0, c1 in zip(v0_tuple, v1_tuple))

@@ -303,7 +303,6 @@ class MyGLWidget(QOpenGLWidget):
         self.doneCurrent()
         self.update()
 
-
     def delete_model(self, index):
         self.makeCurrent()
         glDeleteVertexArrays(1, [self.additional_vaos[index]])
@@ -316,14 +315,6 @@ class MyGLWidget(QOpenGLWidget):
         del self.additional_visible_flags[index]
 
         self.update()
-    
-    def delete_light(self, index):
-        if 0 <= index < len(self.lights):
-            del self.lights[index]
-            self.update()
-        else:
-            print("Nieprawidłowy indeks światła do usunięcia")
-
 
     def change_background_color(self, r, g, b):
         self.color = [r, g, b]
