@@ -71,6 +71,7 @@ class LightItem(QWidget):
         }
 
     def delete_self(self):
+        print(f"Deleting light {self.name} with index {self.index}")
         try:
             index = self.parent_layout.indexOf(self)
             if index != -1:
