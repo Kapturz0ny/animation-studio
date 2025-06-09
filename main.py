@@ -9,52 +9,19 @@ from PyQt5.QtWidgets import (
     QScrollArea,
     QFileDialog,
     QMessageBox,
-    QOpenGLWidget,
     QGroupBox,
     QInputDialog,
 )
 from PyQt5.QtGui import (
-    QOpenGLShaderProgram,
-    QOpenGLShader,
-    QMatrix4x4,
     QVector3D,
-    QMouseEvent,
-    QWheelEvent,
-    QKeyEvent,
     QImage,
 )
-from PyQt5.QtCore import Qt, QPoint, QTimer
-from OpenGL.GL import (
-    glEnable,
-    glClearColor,
-    glClear,
-    glBindVertexArray,
-    glDrawArrays,
-    glGenVertexArrays,
-    glGenBuffers,
-    glDeleteVertexArrays,
-    glDeleteBuffers,
-    glBindBuffer,
-    glBufferData,
-    glVertexAttribPointer,
-    glEnableVertexAttribArray,
-    glViewport,
-    GL_DEPTH_TEST,
-    GL_COLOR_BUFFER_BIT,
-    GL_DEPTH_BUFFER_BIT,
-    GL_ARRAY_BUFFER,
-    GL_STATIC_DRAW,
-    GL_FLOAT,
-    GL_FALSE,
-    GL_TRIANGLES,
-)
+from PyQt5.QtCore import Qt
 import numpy as np
-import math
 import sys
 import imageio.v2 as iio
 
 from loader.obj_loader import load_obj
-from utils.camera import Camera, Direction
 from items import LightItem, FigureItem
 from my_gl_widget import MyGLWidget
 from utils.styles import (
@@ -434,7 +401,8 @@ class MainWindow(QWidget):
             "position": QVector3D(5, 5, 5), 
             "ambient": QVector3D(0.25, 0.25, 0.25), 
             "diffuse": QVector3D(0.75, 0.75, 0.75), 
-            "specular": QVector3D(1.0, 1.0, 1.0)
+            "specular": QVector3D(1.0, 1.0, 1.0),
+            "visible": True,  # czy światło jest widoczne
         }
 
         light_item = LightItem("light_"+str(self.lights_ever), light, self.gl_widget, index, self.lights_box, self)
