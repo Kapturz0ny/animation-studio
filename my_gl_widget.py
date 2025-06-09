@@ -109,7 +109,7 @@ class MyGLWidget(QOpenGLWidget):
 
         self.shader_program.setUniformValue("numLights", len(self.lights))
         for i, light in enumerate(self.lights):
-            if self.visible_lights[i] is not False:
+            if light["visible"]:  # ensure light is visible
                 self.shader_program.setUniformValue(f"lights[{i}].position", light["position"])
                 self.shader_program.setUniformValue(f"lights[{i}].ambient", light["ambient"])
                 self.shader_program.setUniformValue(f"lights[{i}].diffuse", light["diffuse"])
@@ -252,8 +252,15 @@ class MyGLWidget(QOpenGLWidget):
     def add_light(self, light):
         print("dodano światło")
         self.lights.append(light)
-        self.visible_lights.append(True)  # domyślnie światło jest widoczne
+        # self.visible_lights.append(True)  # domyślnie światło jest widoczne
         self.update()
+        
+    def delete_light(self, index):
+        if 0 <= index < len(self.lights):
+            del self.lights[index]
+            self.update()
+        else:
+            print("Nieprawidłowy indeks światła do usunięcia")
 
     def loadModel(self, vertices_np):
         self.makeCurrent()  # activate OpenGL context

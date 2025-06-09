@@ -48,7 +48,7 @@ class LightItem(QWidget):
 
     def toggle_visibility(self):
         current_state = self.toggle_button.isChecked()
-        self.gl_widget.visible_lights[self.index] = current_state
+        self.gl_widget.lights[self.index]["visible"] = current_state
         self.update_icon()
         self.gl_widget.update()
 
